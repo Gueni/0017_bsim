@@ -71,94 +71,94 @@ class BSIM6Params:
     (thick 50 nm gate oxide, 0.6 um diffused p-body channel, ~1.6 m total
     gate width). Swap them for an extracted model card of your device.
     """
-    TYPE: int               = 1                                                        # +1 NMOS, -1 PMOS
+    TYPE    : int           = 1                                                        # +1 NMOS, -1 PMOS
     # --- geometry -------------------------------------------------------------
-    L: float                = 0.6e-6                                                   # drawn channel length [m]
-    W: float                = 1.6                                                      # drawn (total) channel width [m]
-    NF: int                 = 1                                                        # number of fingers
-    LINT: float             = 0.0                                                      # length offset [m]
-    WINT: float             = 0.0                                                      # width offset [m]
-    XL: float               = 0.0
-    XW: float               = 0.0
+    L       : float         = 0.6e-6                                                   # drawn channel length [m]
+    W       : float         = 1.6                                                      # drawn (total) channel width [m]
+    NF      : int           = 1                                                        # number of fingers
+    LINT    : float         = 0.0                                                      # length offset [m]
+    WINT    : float         = 0.0                                                      # width offset [m]
+    XL      : float         = 0.0
+    XW      : float         = 0.0
     # --- process ------------------------------------------------------------
-    TOX: float              = 50e-9                                                    # gate oxide thickness [m]
-    EPSROX: float           = 3.9
-    EPSRSUB: float          = 11.9
-    NDEP: float             = 1.5e23                                                   # channel (p-body) doping [m^-3]
-    NGATE: float            = 1e26                                                     # poly gate doping [m^-3]; 0 = metal gate
-    VFB: float              = -0.95                                                    # flat-band voltage [V]
-    XJ: float               = 1.5e-6                                                   # junction depth [m]
-    PHIN: float             = 0.045
-    NI0SUB: float           = 1.0e16                                                   # ni at TNOM [m^-3]
-    BG0SUB: float           = 1.17                                                     # bandgap at 0 K [eV]
-    TBGASUB: float          = 4.73e-4                                                  # [eV/K]
-    TBGBSUB: float          = 636.0                                                    # [K]
+    TOX     : float         = 50e-9                                                    # gate oxide thickness [m]
+    EPSROX  : float         = 3.9
+    EPSRSUB : float         = 11.9
+    NDEP    : float         = 1.5e23                                                   # channel (p-body) doping [m^-3]
+    NGATE   : float         = 1e26                                                     # poly gate doping [m^-3]; 0 = metal gate
+    VFB     : float         = -0.95                                                    # flat-band voltage [V]
+    XJ      : float         = 1.5e-6                                                   # junction depth [m]
+    PHIN    : float         = 0.045
+    NI0SUB  : float         = 1.0e16                                                   # ni at TNOM [m^-3]
+    BG0SUB  : float         = 1.17                                                     # bandgap at 0 K [eV]
+    TBGASUB : float         = 4.73e-4                                                  # [eV/K]
+    TBGBSUB : float         = 636.0                                                    # [K]
     # --- subthreshold / short channel ----------------------------------------
-    CIT: float              = 0.0                                                      # [F/m^2]
-    NFACTOR: float          = 0.0                                                      # [F/m^2] (manual eq. 1.131 adds it to CIT)
-    CDSCD: float            = 0.0                                                      # [F/m^2/V]
-    CDSCB: float            = 0.0                                                      # [F/m^2/V]
-    K2: float               = 0.0
-    ETA0: float             = 0.01                                                     # DIBL coefficient
-    ETAB: float             = 0.0
+    CIT     : float         = 0.0                                                      # [F/m^2]
+    NFACTOR : float         = 0.0                                                      # [F/m^2] (manual eq. 1.131 adds it to CIT)
+    CDSCD   : float         = 0.0                                                      # [F/m^2/V]
+    CDSCB   : float         = 0.0                                                      # [F/m^2/V]
+    K2      : float         = 0.0
+    ETA0    : float         = 0.01                                                     # DIBL coefficient
+    ETAB    : float         = 0.0
     # --- mobility -------------------------------------------------------------
-    U0: float               = 0.05                                                     # low-field mobility [m^2/Vs]
-    ETAMOB: float           = 1.0
-    UA: float               = 0.5                                                      # phonon/surface roughness [(cm/MV)^EU]
-    EU: float               = 1.5
-    UD: float               = 0.001                                                    # Coulomb scattering
-    UCS: float              = 2.0
-    UC: float               = 0.0                                                      # body-bias sensitivity of mobility [1/V]
+    U0      : float         = 0.05                                                     # low-field mobility [m^2/Vs]
+    ETAMOB  : float         = 1.0
+    UA      : float         = 0.5                                                      # phonon/surface roughness [(cm/MV)^EU]
+    EU      : float         = 1.5
+    UD      : float         = 0.001                                                    # Coulomb scattering
+    UCS     : float         = 2.0
+    UC      : float         = 0.0                                                      # body-bias sensitivity of mobility [1/V]
     # --- velocity saturation -------------------------------------------------
-    VSAT: float             = 1.0e5                                                    # [m/s]
-    PSAT: float             = 1.0
-    DELTA: float            = 0.125                                                    # Vds -> Vdsat smoothing
+    VSAT    : float         = 1.0e5                                                    # [m/s]
+    PSAT    : float         = 1.0
+    DELTA   : float         = 0.125                                                    # Vds -> Vdsat smoothing
     # --- output conductance ---------------------------------------------------
-    PCLM: float             = 0.05
-    PCLMG: float            = 0.0
-    PDIBLC: float           = 1e-3
-    PDIBLCB: float          = 0.0
-    PVAG: float             = 1.0
-    PSCBE1: float           = 4.24e8                                                   # [V/m]
-    PSCBE2: float           = 1.0e-8                                                   # [m/V]
+    PCLM    : float         = 0.05
+    PCLMG   : float         = 0.0
+    PDIBLC  : float         = 1e-3
+    PDIBLCB : float         = 0.0
+    PVAG    : float         = 1.0
+    PSCBE1  : float         = 4.24e8                                                   # [V/m]
+    PSCBE2  : float         = 1.0e-8                                                   # [m/V]
     # --- internal series resistance (RDSMOD = 0) ----------------------------
-    RDSW: float             = 0.0                                                      # [ohm*um^WR]
-    RDSWMIN: float          = 0.0
-    PRWG: float             = 1.0
-    PRWB: float             = 0.0
-    WR: float               = 1.0
+    RDSW    : float         = 0.0                                                      # [ohm*um^WR]
+    RDSWMIN : float         = 0.0
+    PRWG    : float         = 1.0
+    PRWB    : float         = 0.0
+    WR      : float         = 1.0
     # --- overlap / fringe capacitance ----------------------------------------
-    CGSO: float             = 0.0                                                      # [F/m]
-    CGDO: float             = 0.0                                                      # [F/m]
-    CF: float               = 0.0                                                      # [F/m]
+    CGSO    : float         = 0.0                                                      # [F/m]
+    CGDO    : float         = 0.0                                                      # [F/m]
+    CF      : float         = 0.0                                                      # [F/m]
     # --- temperature ----------------------------------------------------------
-    TNOM: float             = 298.15                                                   # [K]
-    KT1: float              = 0.0                                                      # VFB temperature coefficient [V]
-    UTE: float              = -1.5                                                     # U0 temperature exponent
-    UA1: float              = 0.0                                                      # [1/K]
-    UC1: float              = 0.0                                                      # [1/K]
-    UD1: float              = 0.0
-    UCSTE: float            = 0.0
-    AT: float               = 0.0                                                      # VSAT temperature exponent
-    PRT: float              = 0.0                                                      # RDSW temperature exponent
-    TETA0: float            = 0.0
-    TFACTOR: float          = 0.0
+    TNOM    : float         = 298.15                                                   # [K]
+    KT1     : float         = 0.0                                                      # VFB temperature coefficient [V]
+    UTE     : float         = -1.5                                                     # U0 temperature exponent
+    UA1     : float         = 0.0                                                      # [1/K]
+    UC1     : float         = 0.0                                                      # [1/K]
+    UD1     : float         = 0.0
+    UCSTE   : float         = 0.0
+    AT      : float         = 0.0                                                      # VSAT temperature exponent
+    PRT     : float         = 0.0                                                      # RDSW temperature exponent
+    TETA0   : float         = 0.0
+    TFACTOR : float         = 0.0
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class BSIM6Result:
-    Ids: float                                                                         # drain current (into drain) [A]
-    Qg: float                                                                          # terminal charges [C]
-    Qd: float
-    Qs: float
-    Qb: float
-    qs: float                                                                          # normalized source / drain inversion charge
-    qd: float
-    psip: float                                                                        # normalized pinch-off potential
-    nq: float                                                                          # charge slope factor
-    Vdssat: float                                                                      # drain saturation voltage (wrt source) [V]
-    Vdseff: float                                                                      # effective Vds [V]
-    mueff: float                                                                       # effective mobility [m^2/Vs]
-    Moc: float                                                                         # output-conductance multiplier
+    Ids    : float                                                                     # drain current (into drain) [A]
+    Qg     : float                                                                     # terminal charges [C]
+    Qd     : float
+    Qs     : float
+    Qb     : float
+    qs     : float                                                                     # normalized source / drain inversion charge
+    qd     : float
+    psip   : float                                                                     # normalized pinch-off potential
+    nq     : float                                                                     # charge slope factor
+    Vdssat : float                                                                     # drain saturation voltage (wrt source) [V]
+    Vdseff : float                                                                     # effective Vds [V]
+    mueff  : float                                                                     # effective mobility [m^2/Vs]
+    Moc    : float                                                                     # output-conductance multiplier
 #?----------------------------------------------------------------------------------------------------------------------------------------
 class BSIM6Model:
     """BSIM6.0 intrinsic MOSFET.
@@ -177,8 +177,9 @@ class BSIM6Model:
         p                   = self.p
         self.Leff           = p.L + p.XL - 2.0 * p.LINT                                # (1.12)
         self.Weff           = p.W + p.XW - 2.0 * p.WINT                                # (1.13)
-        if self.Leff <= 0 or self.Weff <= 0:
-            raise ValueError("Leff and Weff must be positive")
+ 
+        if self.Leff <= 0 or self.Weff <= 0:raise ValueError("Leff and Weff must be positive")
+ 
         self.eps_sub        = p.EPSRSUB * EPS0
         self.eps_ox         = p.EPSROX * EPS0
         self.Cox            = 3.9 * EPS0 / p.TOX                                       # (1.5)
@@ -211,19 +212,19 @@ class BSIM6Model:
             return t
         p, r                = self.p, T / self.p.TNOM
         t                   = dict(
-                              Vt=KB * T / Q,
-                              ni=self.ni(T),
-                              VFB=p.VFB - p.KT1 * (r - 1.0),                           # (4.7)
-                              NFACTOR=p.NFACTOR + p.TFACTOR * (r - 1.0),               # (4.8)
-                              ETA0=p.ETA0 + p.TETA0 * (r - 1.0),                       # (4.9)
-                              U0=p.U0 * r ** p.UTE,                                    # (4.10)
-                              UA=p.UA * (1.0 + p.UA1 * (T - p.TNOM)),                  # (4.11)
-                              UC=p.UC * (1.0 + p.UC1 * (T - p.TNOM)),                  # (4.12)
-                              UD=p.UD * r ** p.UD1,                                    # (4.13)
-                              UCS=p.UCS * r ** p.UCSTE,                                # (4.14)
-                              VSAT=p.VSAT * r ** (-p.AT),                              # (4.16)
-                              RDSW=p.RDSW * r ** p.PRT,                                # (4.19)
-                              RDSWMIN=p.RDSWMIN * r ** p.PRT,                          # (4.20)
+                              Vt      = KB * T / Q,
+                              ni      = self.ni(T),
+                              VFB     = p.VFB - p.KT1 * (r - 1.0),                     # (4.7)
+                              NFACTOR = p.NFACTOR + p.TFACTOR * (r - 1.0),             # (4.8)
+                              ETA0    = p.ETA0 + p.TETA0 * (r - 1.0),                  # (4.9)
+                              U0      = p.U0 * r ** p.UTE,                             # (4.10)
+                              UA      = p.UA * (1.0 + p.UA1 * (T - p.TNOM)),           # (4.11)
+                              UC      = p.UC * (1.0 + p.UC1 * (T - p.TNOM)),           # (4.12)
+                              UD      = p.UD * r ** p.UD1,                             # (4.13)
+                              UCS     = p.UCS * r ** p.UCSTE,                          # (4.14)
+                              VSAT    = p.VSAT * r ** (-p.AT),                         # (4.16)
+                              RDSW    = p.RDSW * r ** p.PRT,                           # (4.19)
+                              RDSWMIN = p.RDSWMIN * r ** p.PRT,                        # (4.20)
         )
         t["phib_v"]         = t["Vt"] * math.log(p.NDEP / t["ni"])                     # Fermi potential [V]
         t["psist"]          = 0.4 + p.PHIN + t["phib_v"]                               # (1.128)

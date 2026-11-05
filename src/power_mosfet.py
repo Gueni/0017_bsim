@@ -68,46 +68,46 @@ def critical_field(N_m3):
 @dataclass
 class PowerParams:
     # --- drift region -----------------------------------------------------------
-    ND_DRIFT: float         = 4.0e21                                                   # drift doping [m^-3]  (4e15 cm^-3)
-    T_DRIFT: float          = 6.5e-6                                                   # drift thickness [m]
-    A_ACTIVE: float         = 2.0e-5                                                   # active area [m^2] (20 mm^2)
-    K_SPREAD: float         = 1.3                                                      # current spreading + JFET resistance factor
-    VSAT_DRIFT: float       = 1.0e5                                                    # electron saturation velocity [m/s]
-    W_JFET: float           = 3.0e-6                                                   # JFET neck width between p-bodies [m]
+    ND_DRIFT   : float      = 4.0e21                                                   # drift doping [m^-3]  (4e15 cm^-3)
+    T_DRIFT    : float      = 6.5e-6                                                   # drift thickness [m]
+    A_ACTIVE   : float      = 2.0e-5                                                   # active area [m^2] (20 mm^2)
+    K_SPREAD   : float      = 1.3                                                      # current spreading + JFET resistance factor
+    VSAT_DRIFT : float      = 1.0e5                                                    # electron saturation velocity [m/s]
+    W_JFET     : float      = 3.0e-6                                                   # JFET neck width between p-bodies [m]
     # --- package / metallization ------------------------------------------------
-    RS_PKG: float           = 0.4e-3                                                   # source (bond wires, metal) [ohm]
-    RD_PKG: float           = 0.3e-3                                                   # drain (substrate, lead frame) [ohm]
-    TCR_PKG: float          = 3.9e-3                                                   # metal temperature coefficient [1/K]
-    RG: float               = 1.2                                                      # internal gate resistance [ohm] (informative)
+    RS_PKG     : float      = 0.4e-3                                                   # source (bond wires, metal) [ohm]
+    RD_PKG     : float      = 0.3e-3                                                   # drain (substrate, lead frame) [ohm]
+    TCR_PKG    : float      = 3.9e-3                                                   # metal temperature coefficient [1/K]
+    RG         : float      = 1.2                                                      # internal gate resistance [ohm] (informative)
     # --- capacitance geometry ---------------------------------------------------
-    A_GD: float             = 1.0e-6                                                   # gate-over-drift (neck) area [m^2]
-    A_J: float              = 1.2e-5                                                   # body-drift junction area [m^2]
-    CGS_OV: float           = 2.2e-9                                                   # gate-source overlap / source-poly cap [F]
-    FC: float               = 0.5                                                      # forward-bias depletion-cap linearization
+    A_GD       : float      = 1.0e-6                                                   # gate-over-drift (neck) area [m^2]
+    A_J        : float      = 1.2e-5                                                   # body-drift junction area [m^2]
+    CGS_OV     : float      = 2.2e-9                                                   # gate-source overlap / source-poly cap [F]
+    FC         : float      = 0.5                                                      # forward-bias depletion-cap linearization
     # --- avalanche / leakage ----------------------------------------------------
-    TC_BV: float            = 1.0e-3                                                   # relative BV temperature coefficient [1/K]
-    M_EXP: float            = 5.0                                                      # Miller multiplication exponent
-    TAU_G: float            = 1.0e-6                                                   # generation lifetime [s]
+    TC_BV      : float      = 1.0e-3                                                   # relative BV temperature coefficient [1/K]
+    M_EXP      : float      = 5.0                                                      # Miller multiplication exponent
+    TAU_G      : float      = 1.0e-6                                                   # generation lifetime [s]
     # --- body diode ---------------------------------------------------------------
-    IS_D: float             = 1.0e-11                                                  # saturation current at TNOM [A]
-    N_D: float              = 1.05                                                     # ideality factor
-    RS_D: float             = 2.5e-3                                                   # series resistance [ohm]
-    XTI_D: float            = 3.0
-    EG_D: float             = 1.12                                                     # [eV]
+    IS_D       : float      = 1.0e-11                                                  # saturation current at TNOM [A]
+    N_D        : float      = 1.05                                                     # ideality factor
+    RS_D       : float      = 2.5e-3                                                   # series resistance [ohm]
+    XTI_D      : float      = 3.0
+    EG_D       : float      = 1.12                                                     # [eV]
     # --- thermal ------------------------------------------------------------------
-    RTH: float              = 0.6                                                      # junction-to-ambient/heatsink [K/W]
+    RTH        : float      = 0.6                                                      # junction-to-ambient/heatsink [K/W]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class OperatingPoint:
-    Id: float                                                                          # total drain current [A]
-    Ich: float                                                                         # channel current [A]
-    Idiode: float                                                                      # body diode current (source->drain) [A]
-    Vgs_int: float                                                                     # internal channel gate-source voltage [V]
-    Vds_ch: float                                                                      # voltage across the BSIM6 channel [V]
-    Vdx: float                                                                         # internal drain (top of drift) [V]
-    Vdrift: float                                                                      # voltage across the drift region [V]
-    M: float                                                                           # avalanche multiplication
-    T: float                                                                           # junction temperature [K]
+    Id      : float                                                                    # total drain current [A]
+    Ich     : float                                                                    # channel current [A]
+    Idiode  : float                                                                    # body diode current (source->drain) [A]
+    Vgs_int : float                                                                    # internal channel gate-source voltage [V]
+    Vds_ch  : float                                                                    # voltage across the BSIM6 channel [V]
+    Vdx     : float                                                                    # internal drain (top of drift) [V]
+    Vdrift  : float                                                                    # voltage across the drift region [V]
+    M       : float                                                                    # avalanche multiplication
+    T       : float                                                                    # junction temperature [K]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 class PowerMOSFET:
     def __init__(self, channel=None, params=None, **overrides):
