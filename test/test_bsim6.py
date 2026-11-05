@@ -22,13 +22,19 @@
 import  math
 import  os
 import  sys
+import  time
 
 import  numpy                       as  np
+from    rich                        import  box
+from    rich.console                import  Console
+from    rich.panel                  import  Panel
+from    rich.table                  import  Table
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from    bsim6                       import  BSIM6Model, BSIM6Params
-from    power_mosfet                import  PowerMOSFET
+from    bsim6                       import  BSIM6Model
+from    params                      import  BSIM6Params
+from    power                       import  PowerMOSFET
 #?----------------------------------------------------------------------------------------------------------------------------------------
 M                           = BSIM6Model()
 DEV                         = PowerMOSFET()
@@ -125,15 +131,50 @@ def test_gate_charge_has_miller_plateau():
     assert 3.0 < info["Vplateau"] < 5.5
     assert info["Qgd"] > 0 and info["Qg"] > info["Qgs"] + info["Qgd"]
 #?----------------------------------------------------------------------------------------------------------------------------------------
-if __name__ == "__main__":
+def run_all():
+    """Run every test_* function and show the results as a rich table. Returns the number of failures."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")                     # Windows consoles (cp1252 can't print ✔)
+    except AttributeError:
+        pass
+    console                 = Console()
+    tests                  = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
+    table                   = Table(title="BSIM6 / Power MOSFET — Physics Tests", title_style="bold magenta",
+                                    box=box.ROUNDED, header_style="bold white on blue", border_style="blue",
+                                    row_styles=["", "on grey11"])
+    table.add_column("#", style="dim", justify="right")
+    table.add_column("Test", style="bold cyan", no_wrap=True)
+    table.add_column("Status", justify="center", no_wrap=True)
+    table.add_column("Time", style="yellow", justify="right", no_wrap=True)
+    table.add_column("Detail", style="red")
+
     fails                   = 0
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
+    t_all                   = time.perf_counter()
+    with console.status("[bold cyan]Running tests…") as status:
+        for i, (name, fn) in enumerate(tests, 1):
+            status.update(f"[bold cyan]Running[/] {name}  [dim]({i}/{len(tests)})")
+            t0              = time.perf_counter()
             try:
                 fn()
-                print(f"PASS  {name}")
+                verdict, detail = "[bold green]✔ PASS", ""
             except AssertionError as e:
-                fails += 1
-                print(f"FAIL  {name}  {e}")
-    sys.exit(1 if fails else 0)
+                verdict, detail = "[bold red]✘ FAIL", str(e) or "assertion failed"
+            except Exception as e:                                                     # crash inside the test itself
+                verdict, detail = "[bold yellow]⚠ ERROR", f"{type(e).__name__}: {e}"
+            fails          += bool(detail)
+            ms              = 1e3 * (time.perf_counter() - t0)
+            table.add_row(str(i), name.removeprefix("test_").replace("_", " "), verdict, f"{ms:,.0f} ms", detail)
+
+    console.print(table)
+    passed                  = len(tests) - fails
+    style                   = "green" if not fails else "red"
+    console.print(Panel.fit(f"[bold {style}]{passed}/{len(tests)} passed[/]"
+                            + (f"  [bold red]{fails} failed[/]" if fails else "")
+                            + f"  [dim]in {time.perf_counter() - t_all:.2f} s",
+                            border_style=style, title=f"[bold {style}]{'All good' if not fails else 'Failures'}",
+                            title_align="left"))
+    return fails
+#?----------------------------------------------------------------------------------------------------------------------------------------
+if __name__ == "__main__":
+    sys.exit(1 if run_all() else 0)
 #?----------------------------------------------------------------------------------------------------------------------------------------

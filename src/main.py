@@ -33,8 +33,9 @@ from    rich.table                  import  Table
 from    rich.text                   import  Text
 from    scipy.optimize              import  brentq
 
-from    bsim6                       import  BSIM6Model, BSIM6Params
-from    power_mosfet                import  PowerMOSFET, PowerParams
+from    bsim6                       import  BSIM6Model
+from    params                      import  BSIM6Params, PowerParams
+from    power                       import  PowerMOSFET
 from    Plot                        import  write_report
 #?----------------------------------------------------------------------------------------------------------------------------------------
 DATA_DIR                    = Path(__file__).resolve().parent.parent / "data"

@@ -45,104 +45,20 @@ Implemented (manual equation numbers in brackets):
   - temperature dependence                                 [4.7-4.19, 4.44-4.46]
   - intrinsic charges + overlap/fringe charges            [8.8-8.34]
 Not implemented: gate tunnelling, GIDL, noise, stress/WPE, binning, QM effect,
-DITS (DVTP*), junction diodes (handled by power_mosfet.py for power devices).
+DITS (DVTP*), junction diodes (handled by power.py for power devices).
 """
 import  math
 from    dataclasses                 import  dataclass, replace
 
 from    scipy.optimize              import  brentq
-#?----------------------------------------------------------------------------------------------------------------------------------------
-# Physical constants [SI]
-Q                           = 1.602176634e-19                                          # C
-KB                          = 1.380649e-23                                             # J/K
-EPS0                        = 8.8541878128e-12                                         # F/m
 
+from    params                      import  BSIM6Params, EPS0, KB, Q
+#?----------------------------------------------------------------------------------------------------------------------------------------
 _EXP_MAX                    = 700.0
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def _smax(x, eps):
     """Smooth max(x, 0) with rounding width eps."""
     return 0.5 * (x + math.sqrt(x * x + 4.0 * eps * eps))
-#?----------------------------------------------------------------------------------------------------------------------------------------
-@dataclass
-class BSIM6Params:
-    """BSIM6 model card. Names follow the manual; units are SI.
-
-    The defaults describe the channel of a ~100 V vertical power MOSFET
-    (thick 50 nm gate oxide, 0.6 um diffused p-body channel, ~1.6 m total
-    gate width). Swap them for an extracted model card of your device.
-    """
-    TYPE    : int           = 1                                                        # +1 NMOS, -1 PMOS
-    # --- geometry -------------------------------------------------------------
-    L       : float         = 0.6e-6                                                   # drawn channel length [m]
-    W       : float         = 1.6                                                      # drawn (total) channel width [m]
-    NF      : int           = 1                                                        # number of fingers
-    LINT    : float         = 0.0                                                      # length offset [m]
-    WINT    : float         = 0.0                                                      # width offset [m]
-    XL      : float         = 0.0
-    XW      : float         = 0.0
-    # --- process ------------------------------------------------------------
-    TOX     : float         = 50e-9                                                    # gate oxide thickness [m]
-    EPSROX  : float         = 3.9
-    EPSRSUB : float         = 11.9
-    NDEP    : float         = 1.5e23                                                   # channel (p-body) doping [m^-3]
-    NGATE   : float         = 1e26                                                     # poly gate doping [m^-3]; 0 = metal gate
-    VFB     : float         = -0.95                                                    # flat-band voltage [V]
-    XJ      : float         = 1.5e-6                                                   # junction depth [m]
-    PHIN    : float         = 0.045
-    NI0SUB  : float         = 1.0e16                                                   # ni at TNOM [m^-3]
-    BG0SUB  : float         = 1.17                                                     # bandgap at 0 K [eV]
-    TBGASUB : float         = 4.73e-4                                                  # [eV/K]
-    TBGBSUB : float         = 636.0                                                    # [K]
-    # --- subthreshold / short channel ----------------------------------------
-    CIT     : float         = 0.0                                                      # [F/m^2]
-    NFACTOR : float         = 0.0                                                      # [F/m^2] (manual eq. 1.131 adds it to CIT)
-    CDSCD   : float         = 0.0                                                      # [F/m^2/V]
-    CDSCB   : float         = 0.0                                                      # [F/m^2/V]
-    K2      : float         = 0.0
-    ETA0    : float         = 0.01                                                     # DIBL coefficient
-    ETAB    : float         = 0.0
-    # --- mobility -------------------------------------------------------------
-    U0      : float         = 0.05                                                     # low-field mobility [m^2/Vs]
-    ETAMOB  : float         = 1.0
-    UA      : float         = 0.5                                                      # phonon/surface roughness [(cm/MV)^EU]
-    EU      : float         = 1.5
-    UD      : float         = 0.001                                                    # Coulomb scattering
-    UCS     : float         = 2.0
-    UC      : float         = 0.0                                                      # body-bias sensitivity of mobility [1/V]
-    # --- velocity saturation -------------------------------------------------
-    VSAT    : float         = 1.0e5                                                    # [m/s]
-    PSAT    : float         = 1.0
-    DELTA   : float         = 0.125                                                    # Vds -> Vdsat smoothing
-    # --- output conductance ---------------------------------------------------
-    PCLM    : float         = 0.05
-    PCLMG   : float         = 0.0
-    PDIBLC  : float         = 1e-3
-    PDIBLCB : float         = 0.0
-    PVAG    : float         = 1.0
-    PSCBE1  : float         = 4.24e8                                                   # [V/m]
-    PSCBE2  : float         = 1.0e-8                                                   # [m/V]
-    # --- internal series resistance (RDSMOD = 0) ----------------------------
-    RDSW    : float         = 0.0                                                      # [ohm*um^WR]
-    RDSWMIN : float         = 0.0
-    PRWG    : float         = 1.0
-    PRWB    : float         = 0.0
-    WR      : float         = 1.0
-    # --- overlap / fringe capacitance ----------------------------------------
-    CGSO    : float         = 0.0                                                      # [F/m]
-    CGDO    : float         = 0.0                                                      # [F/m]
-    CF      : float         = 0.0                                                      # [F/m]
-    # --- temperature ----------------------------------------------------------
-    TNOM    : float         = 298.15                                                   # [K]
-    KT1     : float         = 0.0                                                      # VFB temperature coefficient [V]
-    UTE     : float         = -1.5                                                     # U0 temperature exponent
-    UA1     : float         = 0.0                                                      # [1/K]
-    UC1     : float         = 0.0                                                      # [1/K]
-    UD1     : float         = 0.0
-    UCSTE   : float         = 0.0
-    AT      : float         = 0.0                                                      # VSAT temperature exponent
-    PRT     : float         = 0.0                                                      # RDSW temperature exponent
-    TETA0   : float         = 0.0
-    TFACTOR : float         = 0.0
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class BSIM6Result:
