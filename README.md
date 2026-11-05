@@ -133,7 +133,3 @@ The 16 tests check physical behaviour, for example:
 - nonlinear capacitances
 - body-diode conduction
 - the Miller plateau in the gate-charge curve
-
-## Author
-
-Mohamed Gueni (mohamedgueni@outlook.com)
