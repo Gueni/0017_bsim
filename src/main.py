@@ -26,6 +26,11 @@ from    pathlib                     import  Path
 
 import  numpy                       as  np
 import  pandas                      as  pd
+from    rich                        import  box
+from    rich.console                import  Console
+from    rich.panel                  import  Panel
+from    rich.table                  import  Table
+from    rich.text                   import  Text
 from    scipy.optimize              import  brentq
 
 from    bsim6                       import  BSIM6Model, BSIM6Params
@@ -98,6 +103,28 @@ def summarize(dev, gq):
         "VSD @ IS=20 A (body diode)": f"{vsd:.3f} V",
     }
 #?----------------------------------------------------------------------------------------------------------------------------------------
+def summary_table(summary):
+    """Datasheet summary as a rich table: parameter | test conditions | value."""
+    table                   = Table(title="BSIM6 Power MOSFET — Datasheet Summary", title_style="bold magenta",
+                                    box=box.ROUNDED, header_style="bold white on blue", border_style="blue",
+                                    row_styles=["", "on grey11"], expand=False)
+    table.add_column("Parameter", style="bold cyan", no_wrap=True)
+    table.add_column("Conditions", style="yellow")
+    table.add_column("Value", style="bold green", justify="right", no_wrap=True)
+    for key, value in summary.items():
+        sub                 = key.startswith(" ")                                      # indented key = sub-item of the row above
+        key                 = key.strip()
+        if " @ " in key:
+            param, cond     = key.split(" @ ", 1)
+        elif key.endswith(")") and " (" in key:
+            param, cond     = key[:-1].rsplit(" (", 1)
+        else:
+            param, cond     = key, ""
+        if sub:
+            param           = Text("  └ " + param.removeprefix("of which "), style="cyan")
+        table.add_row(param, cond, value)
+    return table
+#?----------------------------------------------------------------------------------------------------------------------------------------
 def main():
     ap                      = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--points", type=int, default=60, help="points per sweep")
@@ -108,21 +135,24 @@ def main():
     except AttributeError:
         pass
 
+    console                 = Console()
     dev                     = PowerMOSFET(BSIM6Model(BSIM6Params()), PowerParams())
 
     t0                      = time.perf_counter()
-    data, gq                = characterize(dev, args.points)
-    summary                 = summarize(dev, gq)
-    args.out.mkdir(parents=True, exist_ok=True)
-    for name, df in data.items():
-        df.to_csv(args.out / f"{name}.csv", index=False)
-    report                  = write_report(data, summary, str(args.out / "power_mosfet_report.html"))
+    with console.status("[bold cyan]Characterizing power MOSFET…"):
+        data, gq            = characterize(dev, args.points)
+        summary             = summarize(dev, gq)
+        args.out.mkdir(parents=True, exist_ok=True)
+        for name, df in data.items():
+            df.to_csv(args.out / f"{name}.csv", index=False)
+        report              = write_report(data, summary, str(args.out / "power_mosfet_report.html"))
 
-    w                       = max(len(k) for k in summary)
-    for k, v in summary.items():
-        print(f"{k:<{w}}  {v}")
-    print(f"\nCSV data + report written to {args.out}  ({time.perf_counter() - t0:.1f} s)")
-    print(f"Open: {report}")
+    console.print(summary_table(summary))
+    console.print(Panel.fit(
+        Text.assemble(("CSV data + report  ", "dim"), (str(args.out), "green"),
+                      (f"  ({time.perf_counter() - t0:.1f} s)\n", "dim"),
+                      ("Open               ", "dim"), (report, "bold blue underline")),
+        border_style="green", title="[bold green]Done", title_align="left"))
 #?----------------------------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
