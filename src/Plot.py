@@ -26,6 +26,7 @@ import  plotly.io                   as  pio
 _PALETTE                    = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2", "#db2777"]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def _fig(title, xlab, ylab, ylog=False, xlog=False):
+    """Empty plotly figure with the report's common layout (title, axis labels, optional log axes)."""
     fig                     = go.Figure()
     fig.update_layout(
         title=dict(text=title, x=0.02, font=dict(size=16)),
@@ -42,6 +43,7 @@ def _fig(title, xlab, ylab, ylog=False, xlog=False):
     return fig
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def _lines(fig, df, x, y, group, label_fmt, dash_by=None):
+    """Add one line trace per group of `df` (x vs y) labelled by `label_fmt(key)`; `dash_by(key)` picks the dash style."""
     for i, (key, sub) in enumerate(df.groupby(group, sort=True)):
         name                = label_fmt(key)
         dash                = None
@@ -104,6 +106,7 @@ def build_figures(d):
     return figs
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def write_report(d, summary, path, title="BSIM6 Power MOSFET Model"):
+    """Write the standalone HTML report (summary table + all figures) to `path` and return the path."""
     figs                    = build_figures(d)
     rows                    = "\n".join(
         f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in summary.items())

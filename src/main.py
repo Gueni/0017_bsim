@@ -20,8 +20,12 @@
 #? -------------------------------------------------------------------------------
 #? -------------------------------------------------------------------------------
 import  argparse
+import  dataclasses
+import  inspect
+import  re
 import  sys
 import  time
+from    datetime                    import  datetime
 from    pathlib                     import  Path
 
 import  numpy                       as  np
@@ -29,6 +33,7 @@ import  pandas                      as  pd
 from    rich                        import  box
 from    rich.console                import  Console
 from    rich.panel                  import  Panel
+from    rich.rule                   import  Rule
 from    rich.table                  import  Table
 from    rich.text                   import  Text
 from    scipy.optimize              import  brentq
@@ -40,8 +45,12 @@ from    Plot                        import  write_report
 #?----------------------------------------------------------------------------------------------------------------------------------------
 DATA_DIR                    = Path(__file__).resolve().parent.parent / "data"
 K0                          = 273.15
+LOG_WIDTH                   = 140                                                      # character width of the tables in bsim.log
+_FIELD                      = re.compile(r"^\s+(\w+)\s*:[^=#]*(?:=[^#]*)?(?:#\s*(.*))?$")
+_SECTION                    = re.compile(r"^\s+#\s*-+\s*(.*?)\s*-*\s*$")
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def characterize(dev, points=60):
+    """Run every datasheet sweep on `dev` (`points` per sweep); return ({name: DataFrame}, gate-charge info)."""
     d                       = {}
 
     rows                    = []
@@ -89,6 +98,7 @@ def characterize(dev, points=60):
     return d, gq
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def summarize(dev, gq):
+    """Key datasheet numbers as {label: formatted value}, used by the console table and the HTML report."""
     c50                     = dev.capacitances(50.0)
     vsd                     = brentq(lambda v: -dev.id(0.0, -v, 298.15) - 20.0, 0.2, 3.0)
     return {
@@ -126,7 +136,91 @@ def summary_table(summary):
         table.add_row(param, cond, value)
     return table
 #?----------------------------------------------------------------------------------------------------------------------------------------
+def _styled_table(title, *columns):
+    """Rich table in the report's common style; each column is (header, style, justify)."""
+    table                   = Table(title=title, title_style="bold magenta", box=box.ROUNDED,
+                                    header_style="bold white on blue", border_style="blue",
+                                    row_styles=["", "on grey11"], title_justify="left")
+    for header, style, justify in columns:
+        table.add_column(header, style=style, justify=justify)
+    return table
+#?----------------------------------------------------------------------------------------------------------------------------------------
+def card_table(card):
+    """Every field of a model card (BSIM6Params / PowerParams) with its value and the description from params.py.
+
+    Section headers (`# --- geometry ---`) and the trailing comment of each field are read from the
+    dataclass source, so the table always matches the card definition.
+    """
+    cls                     = type(card)
+    table                   = _styled_table(f"{cls.__name__} — model card",
+                                            ("Parameter", "bold cyan", "left"),
+                                            ("Value", "bold green", "right"),
+                                            ("Default", "dim", "right"),
+                                            ("Description", "yellow", "left"))
+    defaults                = {f.name: f.default for f in dataclasses.fields(cls)}
+    for line in inspect.getsource(cls).splitlines()[1:]:
+        if m := _SECTION.match(line):
+            table.add_row(Text(m[1], style="bold magenta"), "", "", "", end_section=False)
+        elif (m := _FIELD.match(line)) and m[1] in defaults:
+            value           = getattr(card, m[1])
+            changed         = value != defaults[m[1]]
+            table.add_row("  " + m[1], Text(f"{value:g}", style="bold red" if changed else ""),
+                          f"{defaults[m[1]]:g}", Text(m[2] or ""))                    # Text: keep "[m]" units literal, not markup
+    return table
+#?----------------------------------------------------------------------------------------------------------------------------------------
+def derived_table(dev):
+    """Bias-independent quantities derived from the cards (effective geometry, Cox, BV, drift resistance ...)."""
+    ch                      = dev.ch
+    table                   = _styled_table("Derived device quantities (25 °C)",
+                                            ("Quantity", "bold cyan", "left"),
+                                            ("Value", "bold green", "right"),
+                                            ("Unit", "yellow", "left"))
+    for name, value, unit in (
+            ("Leff  (effective channel length)", ch.Leff * 1e6, "µm"),
+            ("Weff  (effective channel width)", ch.Weff, "m"),
+            ("Cox   (oxide capacitance)", ch.Cox * 1e3, "fF/µm²"),
+            ("γ     (body-effect coefficient)", ch.gamma_v, "√V"),
+            ("Vbi   (body-drift built-in voltage)", dev.v_bi(298.15), "V"),
+            ("V(BR)DSS (avalanche breakdown)", dev.breakdown_voltage(), "V"),
+            ("V_JFET (JFET pinch-off)", dev.v_jfet(), "V"),
+            ("R_drift (drift resistance)", dev.r_drift(298.15) * 1e3, "mΩ"),
+            ("I_sat,drift (drift velocity saturation)", dev.i_drift_sat(298.15), "A")):
+        table.add_row(name, f"{value:.4g}", unit)
+    return table
+#?----------------------------------------------------------------------------------------------------------------------------------------
+def files_table(paths):
+    """Output files with their size (rows x columns for CSVs)."""
+    table                   = _styled_table("Output files",
+                                            ("File", "bold cyan", "left"),
+                                            ("Contents", "bold green", "right"),
+                                            ("Path", "dim", "left"))
+    for p in paths:
+        if p.suffix == ".csv":
+            df              = pd.read_csv(p)
+            what            = f"{len(df)} rows × {len(df.columns)} cols"
+        else:
+            what            = f"{p.stat().st_size / 1024:.0f} kB"
+        table.add_row(p.name, what, str(p.parent))
+    return table
+#?----------------------------------------------------------------------------------------------------------------------------------------
+def write_log(path, args, dev, summary, outputs, elapsed):
+    """Write bsim.log: run info, both model cards, derived quantities, datasheet summary and output files."""
+    with open(path, "w", encoding="utf-8") as fh:
+        log                 = Console(file=fh, width=LOG_WIDTH, color_system=None, force_terminal=False,
+                                      legacy_windows=False, emoji=False)
+        log.print(Rule(f"BSIM6 Power MOSFET run — {datetime.now():%Y-%m-%d %H:%M:%S}"))
+        info                = _styled_table("Run", ("Setting", "bold cyan", "left"), ("Value", "bold green", "left"))
+        for k, v in (("Python", sys.version.split()[0]), ("Points per sweep", str(args.points)),
+                     ("Output directory", str(args.out)), ("Run time", f"{elapsed:.1f} s")):
+            info.add_row(k, v)
+        for renderable in (info, card_table(dev.ch.p), card_table(dev.p), derived_table(dev),
+                           summary_table(summary), files_table(outputs)):
+            log.print(renderable)
+            log.print()
+    return path
+#?----------------------------------------------------------------------------------------------------------------------------------------
 def main():
+    """Command-line entry point: characterize the default device, write CSVs + HTML report, print the summary."""
     ap                      = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--points", type=int, default=60, help="points per sweep")
     ap.add_argument("--out", type=Path, default=DATA_DIR)
@@ -143,16 +237,27 @@ def main():
     with console.status("[bold cyan]Characterizing power MOSFET…"):
         data, gq            = characterize(dev, args.points)
         summary             = summarize(dev, gq)
-        args.out.mkdir(parents=True, exist_ok=True)
+        csv_dir             = args.out / "csv"
+        html_dir            = args.out / "html"
+        csv_dir.mkdir(parents=True, exist_ok=True)
+        html_dir.mkdir(parents=True, exist_ok=True)
+        outputs             = []
         for name, df in data.items():
-            df.to_csv(args.out / f"{name}.csv", index=False)
-        report              = write_report(data, summary, str(args.out / "power_mosfet_report.html"))
+            df.to_csv(csv_dir / f"{name}.csv", index=False)
+            outputs.append(csv_dir / f"{name}.csv")
+        report              = Path(write_report(data, summary, str(html_dir / "power_mosfet_report.html")))
+        outputs.append(report)
+        log_dir             = args.out / "log"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log                 = write_log(log_dir / "bsim.log", args, dev, summary, outputs,
+                                        time.perf_counter() - t0)
 
     console.print(summary_table(summary))
     console.print(Panel.fit(
-        Text.assemble(("CSV data + report  ", "dim"), (str(args.out), "green"),
-                      (f"  ({time.perf_counter() - t0:.1f} s)\n", "dim"),
-                      ("Open               ", "dim"), (report, "bold blue underline")),
+        Text.assemble(("CSV     ", "dim"), (str(csv_dir), "green"),
+                      (f"  ({len(data)} files, {time.perf_counter() - t0:.1f} s)\n", "dim"),
+                      ("Report  ", "dim"), (str(report), "bold blue underline"), ("\n", ""),
+                      ("Log     ", "dim"), (str(log), "bold yellow")),
         border_style="green", title="[bold green]Done", title_align="left"))
 #?----------------------------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":

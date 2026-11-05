@@ -1,0 +1,170 @@
+─────────────────────────────────────────────── BSIM6 Power MOSFET run — 2026-11-05 23:12:36 ───────────────────────────────────────────────
+Run                                               
+╭──────────────────┬─────────────────────────────╮
+│ Setting          │ Value                       │
+├──────────────────┼─────────────────────────────┤
+│ Python           │ 3.14.4                      │
+│ Points per sweep │ 60                          │
+│ Output directory │ D:\WORKSPACE\0017_bsim\data │
+│ Run time         │ 2.7 s                       │
+╰──────────────────┴─────────────────────────────╯
+
+BSIM6Params — model card                                                                                     
+╭─────────────────────────────────────────┬──────────┬──────────┬───────────────────────────────────────────╮
+│ Parameter                               │    Value │  Default │ Description                               │
+├─────────────────────────────────────────┼──────────┼──────────┼───────────────────────────────────────────┤
+│   TYPE                                  │        1 │        1 │ +1 NMOS, -1 PMOS                          │
+│ geometry                                │          │          │                                           │
+│   L                                     │    6e-07 │    6e-07 │ drawn channel length [m]                  │
+│   W                                     │      1.6 │      1.6 │ drawn (total) channel width [m]           │
+│   NF                                    │        1 │        1 │ number of fingers                         │
+│   LINT                                  │        0 │        0 │ length offset [m]                         │
+│   WINT                                  │        0 │        0 │ width offset [m]                          │
+│   XL                                    │        0 │        0 │                                           │
+│   XW                                    │        0 │        0 │                                           │
+│ process                                 │          │          │                                           │
+│   TOX                                   │    5e-08 │    5e-08 │ gate oxide thickness [m]                  │
+│   EPSROX                                │      3.9 │      3.9 │                                           │
+│   EPSRSUB                               │     11.9 │     11.9 │                                           │
+│   NDEP                                  │  1.5e+23 │  1.5e+23 │ channel (p-body) doping [m^-3]            │
+│   NGATE                                 │    1e+26 │    1e+26 │ poly gate doping [m^-3]; 0 = metal gate   │
+│   VFB                                   │    -0.95 │    -0.95 │ flat-band voltage [V]                     │
+│   XJ                                    │  1.5e-06 │  1.5e-06 │ junction depth [m]                        │
+│   PHIN                                  │    0.045 │    0.045 │                                           │
+│   NI0SUB                                │    1e+16 │    1e+16 │ ni at TNOM [m^-3]                         │
+│   BG0SUB                                │     1.17 │     1.17 │ bandgap at 0 K [eV]                       │
+│   TBGASUB                               │ 0.000473 │ 0.000473 │ [eV/K]                                    │
+│   TBGBSUB                               │      636 │      636 │ [K]                                       │
+│ subthreshold / short channel            │          │          │                                           │
+│   CIT                                   │        0 │        0 │ [F/m^2]                                   │
+│   NFACTOR                               │        0 │        0 │ [F/m^2] (manual eq. 1.131 adds it to CIT) │
+│   CDSCD                                 │        0 │        0 │ [F/m^2/V]                                 │
+│   CDSCB                                 │        0 │        0 │ [F/m^2/V]                                 │
+│   K2                                    │        0 │        0 │                                           │
+│   ETA0                                  │     0.01 │     0.01 │ DIBL coefficient                          │
+│   ETAB                                  │        0 │        0 │                                           │
+│ mobility                                │          │          │                                           │
+│   U0                                    │     0.05 │     0.05 │ low-field mobility [m^2/Vs]               │
+│   ETAMOB                                │        1 │        1 │                                           │
+│   UA                                    │      0.5 │      0.5 │ phonon/surface roughness [(cm/MV)^EU]     │
+│   EU                                    │      1.5 │      1.5 │                                           │
+│   UD                                    │    0.001 │    0.001 │ Coulomb scattering                        │
+│   UCS                                   │        2 │        2 │                                           │
+│   UC                                    │        0 │        0 │ body-bias sensitivity of mobility [1/V]   │
+│ velocity saturation                     │          │          │                                           │
+│   VSAT                                  │   100000 │   100000 │ [m/s]                                     │
+│   PSAT                                  │        1 │        1 │                                           │
+│   DELTA                                 │    0.125 │    0.125 │ Vds -> Vdsat smoothing                    │
+│ output conductance                      │          │          │                                           │
+│   PCLM                                  │     0.05 │     0.05 │                                           │
+│   PCLMG                                 │        0 │        0 │                                           │
+│   PDIBLC                                │    0.001 │    0.001 │                                           │
+│   PDIBLCB                               │        0 │        0 │                                           │
+│   PVAG                                  │        1 │        1 │                                           │
+│   PSCBE1                                │ 4.24e+08 │ 4.24e+08 │ [V/m]                                     │
+│   PSCBE2                                │    1e-08 │    1e-08 │ [m/V]                                     │
+│ internal series resistance (RDSMOD = 0) │          │          │                                           │
+│   RDSW                                  │        0 │        0 │ [ohm*um^WR]                               │
+│   RDSWMIN                               │        0 │        0 │                                           │
+│   PRWG                                  │        1 │        1 │                                           │
+│   PRWB                                  │        0 │        0 │                                           │
+│   WR                                    │        1 │        1 │                                           │
+│ overlap / fringe capacitance            │          │          │                                           │
+│   CGSO                                  │        0 │        0 │ [F/m]                                     │
+│   CGDO                                  │        0 │        0 │ [F/m]                                     │
+│   CF                                    │        0 │        0 │ [F/m]                                     │
+│ temperature                             │          │          │                                           │
+│   TNOM                                  │   298.15 │   298.15 │ [K]                                       │
+│   KT1                                   │        0 │        0 │ VFB temperature coefficient [V]           │
+│   UTE                                   │     -1.5 │     -1.5 │ U0 temperature exponent                   │
+│   UA1                                   │        0 │        0 │ [1/K]                                     │
+│   UC1                                   │        0 │        0 │ [1/K]                                     │
+│   UD1                                   │        0 │        0 │                                           │
+│   UCSTE                                 │        0 │        0 │                                           │
+│   AT                                    │        0 │        0 │ VSAT temperature exponent                 │
+│   PRT                                   │        0 │        0 │ RDSW temperature exponent                 │
+│   TETA0                                 │        0 │        0 │                                           │
+│   TFACTOR                               │        0 │        0 │                                           │
+╰─────────────────────────────────────────┴──────────┴──────────┴───────────────────────────────────────────╯
+
+PowerParams — model card                                                                      
+╭─────────────────────────┬─────────┬─────────┬──────────────────────────────────────────────╮
+│ Parameter               │   Value │ Default │ Description                                  │
+├─────────────────────────┼─────────┼─────────┼──────────────────────────────────────────────┤
+│ drift region            │         │         │                                              │
+│   ND_DRIFT              │   4e+21 │   4e+21 │ drift doping [m^-3]  (4e15 cm^-3)            │
+│   T_DRIFT               │ 6.5e-06 │ 6.5e-06 │ drift thickness [m]                          │
+│   A_ACTIVE              │   2e-05 │   2e-05 │ active area [m^2] (20 mm^2)                  │
+│   K_SPREAD              │     1.3 │     1.3 │ current spreading + JFET resistance factor   │
+│   VSAT_DRIFT            │  100000 │  100000 │ electron saturation velocity [m/s]           │
+│   W_JFET                │   3e-06 │   3e-06 │ JFET neck width between p-bodies [m]         │
+│ package / metallization │         │         │                                              │
+│   RS_PKG                │  0.0004 │  0.0004 │ source (bond wires, metal) [ohm]             │
+│   RD_PKG                │  0.0003 │  0.0003 │ drain (substrate, lead frame) [ohm]          │
+│   TCR_PKG               │  0.0039 │  0.0039 │ metal temperature coefficient [1/K]          │
+│   RG                    │     1.2 │     1.2 │ internal gate resistance [ohm] (informative) │
+│ capacitance geometry    │         │         │                                              │
+│   A_GD                  │   1e-06 │   1e-06 │ gate-over-drift (neck) area [m^2]            │
+│   A_J                   │ 1.2e-05 │ 1.2e-05 │ body-drift junction area [m^2]               │
+│   CGS_OV                │ 2.2e-09 │ 2.2e-09 │ gate-source overlap / source-poly cap [F]    │
+│   FC                    │     0.5 │     0.5 │ forward-bias depletion-cap linearization     │
+│ avalanche / leakage     │         │         │                                              │
+│   TC_BV                 │   0.001 │   0.001 │ relative BV temperature coefficient [1/K]    │
+│   M_EXP                 │       5 │       5 │ Miller multiplication exponent               │
+│   TAU_G                 │   1e-06 │   1e-06 │ generation lifetime [s]                      │
+│ body diode              │         │         │                                              │
+│   IS_D                  │   1e-11 │   1e-11 │ saturation current at TNOM [A]               │
+│   N_D                   │    1.05 │    1.05 │ ideality factor                              │
+│   RS_D                  │  0.0025 │  0.0025 │ series resistance [ohm]                      │
+│   XTI_D                 │       3 │       3 │                                              │
+│   EG_D                  │    1.12 │    1.12 │ [eV]                                         │
+│ thermal                 │         │         │                                              │
+│   RTH                   │     0.6 │     0.6 │ junction-to-ambient/heatsink [K/W]           │
+╰─────────────────────────┴─────────┴─────────┴──────────────────────────────────────────────╯
+
+Derived device quantities (25 °C)                            
+╭─────────────────────────────────────────┬────────┬────────╮
+│ Quantity                                │  Value │ Unit   │
+├─────────────────────────────────────────┼────────┼────────┤
+│ Leff  (effective channel length)        │    0.6 │ µm     │
+│ Weff  (effective channel width)         │    1.6 │ m      │
+│ Cox   (oxide capacitance)               │ 0.6906 │ fF/µm² │
+│ γ     (body-effect coefficient)         │  3.259 │ √V     │
+│ Vbi   (body-drift built-in voltage)     │ 0.7559 │ V      │
+│ V(BR)DSS (avalanche breakdown)          │  105.1 │ V      │
+│ V_JFET (JFET pinch-off)                 │  6.087 │ V      │
+│ R_drift (drift resistance)              │  5.073 │ mΩ     │
+│ I_sat,drift (drift velocity saturation) │    986 │ A      │
+╰─────────────────────────────────────────┴────────┴────────╯
+
+                   BSIM6 Power MOSFET — Datasheet Summary                   
+╭────────────────────┬───────────────────────────┬─────────────────────────╮
+│ Parameter          │ Conditions                │                   Value │
+├────────────────────┼───────────────────────────┼─────────────────────────┤
+│ V(BR)DSS           │ 25 °C                     │                 105.1 V │
+│ VGS(th)            │ 250 µA, 25 °C / 150 °C    │         2.36 V / 1.45 V │
+│ RDS(on)            │ VGS=10 V, ID=20 A, 25 °C  │                 8.01 mΩ │
+│ RDS(on)            │ VGS=10 V, ID=20 A, 125 °C │                13.74 mΩ │
+│   └ drift region   │ 25 °C                     │                 5.07 mΩ │
+│ IDSS               │ 80 V, 25 °C / 150 °C      │ 6.01e-08 A / 9.90e-05 A │
+│ Ciss / Coss / Crss │ VDS=50 V                  │    2791 / 335 / 26.0 pF │
+│ Qg / Qgs / Qgd     │ 50 V, 20 A, 10 V          │    37.3 / 10.9 / 3.7 nC │
+│ Miller plateau     │                           │                  4.01 V │
+│ VSD                │ IS=20 A (body diode)      │                 0.810 V │
+╰────────────────────┴───────────────────────────┴─────────────────────────╯
+
+Output files                                                                       
+╭──────────────────────────┬───────────────────┬──────────────────────────────────╮
+│ File                     │          Contents │ Path                             │
+├──────────────────────────┼───────────────────┼──────────────────────────────────┤
+│ output.csv               │ 720 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ transfer.csv             │ 480 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ rdson.csv                │  72 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ vth.csv                  │  24 rows × 2 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ caps.csv                 │  70 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ gate_charge.csv          │ 161 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ diode.csv                │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ off.csv                  │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ power_mosfet_report.html │            137 kB │ D:\WORKSPACE\0017_bsim\data\html │
+╰──────────────────────────┴───────────────────┴──────────────────────────────────╯
+

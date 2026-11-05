@@ -62,6 +62,7 @@ def _smax(x, eps):
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class BSIM6Result:
+    """Result of one BSIM6Model.evaluate() call: drain current, terminal charges and internal quantities."""
     Ids    : float                                                                     # drain current (into drain) [A]
     Qg     : float                                                                     # terminal charges [C]
     Qd     : float
@@ -84,12 +85,14 @@ class BSIM6Model:
     """
 
     def __init__(self, params=None, **overrides):
+        """Build the model from a BSIM6Params card (default card if None); keyword overrides replace single parameters."""
         self.p              = replace(params or BSIM6Params(), **overrides)
         self._tcache        = {}
         self._geometry()
 
     # ------------------------------------------------------------------ setup
     def _geometry(self):
+        """Recompute effective geometry, Cox and the other bias-independent quantities; clears the temperature cache."""
         p                   = self.p
         self.Leff           = p.L + p.XL - 2.0 * p.LINT                                # (1.12)
         self.Weff           = p.W + p.XW - 2.0 * p.WINT                                # (1.13)
@@ -106,10 +109,12 @@ class BSIM6Model:
         self._tcache.clear()
 
     def set_params(self, **kw):
+        """Change model parameters in place, e.g. set_params(TOX=40e-9), and refresh the derived quantities."""
         self.p              = replace(self.p, **kw)
         self._geometry()
 
     def _eg(self, T):
+        """Silicon bandgap [eV] at temperature T [K]                 (4.45)."""
         p                   = self.p
         return p.BG0SUB - p.TBGASUB * T * T / (T + p.TBGBSUB)                          # (4.45)
 
@@ -161,6 +166,7 @@ class BSIM6Model:
             return 0.0
 
         def f(psi):
+            """Residual of (1.74) for a trial psi; zero at the pinch-off potential."""
             h               = max(math.expm1(-psi) + psi, 0.0)
             s               = math.sqrt(h)
             if psi >= 0.0:
@@ -188,6 +194,7 @@ class BSIM6Model:
         sp2                 = 2.0 * math.sqrt(psip)
 
         def g(x):
+            """Residual of (1.96) for a trial x = ln(q); zero at the normalized inversion charge."""
             ex              = math.exp(min(x, _EXP_MAX))
             return 2.0 * ex + x + c1 + math.log(k * ex + sp2) - v
 

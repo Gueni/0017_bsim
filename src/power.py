@@ -65,6 +65,7 @@ def critical_field(N_m3):
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class OperatingPoint:
+    """DC operating point from PowerMOSFET.solve(): currents, internal node voltages, multiplication, temperature."""
     Id      : float                                                                    # total drain current [A]
     Ich     : float                                                                    # channel current [A]
     Idiode  : float                                                                    # body diode current (source->drain) [A]
@@ -76,13 +77,21 @@ class OperatingPoint:
     T       : float                                                                    # junction temperature [K]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 class PowerMOSFET:
+    """Vertical power MOSFET: BSIM6 channel + drift region, JFET shielding, avalanche, body diode and charges.
+
+    Use ``id(Vgs, Vds, T)`` for the drain current, ``solve`` for the full operating point and
+    ``rdson``, ``vth``, ``capacitances``, ``gate_charge`` for datasheet quantities.
+    """
+
     def __init__(self, channel=None, params=None, **overrides):
+        """Build the device from a BSIM6 channel and a PowerParams card (defaults if None); overrides replace power parameters."""
         self.ch             = channel or BSIM6Model(BSIM6Params())
         self.p              = replace(params or PowerParams(), **overrides)
         self.TNOM           = self.ch.p.TNOM
 
     # ------------------------------------------------------------ physics bits
     def r_drift(self, T):
+        """Low-field drift-region resistance [ohm] at T [K], including the spreading/JFET factor."""
         p                   = self.p
         mu                  = mobility_arora(p.ND_DRIFT, T)
         return p.K_SPREAD * p.T_DRIFT / (Q * p.ND_DRIFT * mu * p.A_ACTIVE)
@@ -102,6 +111,7 @@ class PowerMOSFET:
         return I * R0 / (1.0 - x)
 
     def i_drift_sat(self, T):
+        """Drift current [A] at which velocity saturation makes the drift voltage diverge."""
         p                   = self.p
         Vc                  = p.VSAT_DRIFT * p.T_DRIFT / mobility_arora(p.ND_DRIFT, T)
         return Vc / self.r_drift(T)
@@ -119,6 +129,7 @@ class PowerMOSFET:
         return V / (1.0 + abs(V / Vp) ** m) ** (1.0 / m)
 
     def v_bi(self, T):
+        """Built-in voltage [V] of the p-body / n-drift junction at T [K]."""
         ni                  = self.ch.ni(T)
         return KB * T / Q * math.log(self.ch.p.NDEP * self.p.ND_DRIFT / ni ** 2)
 
@@ -136,12 +147,14 @@ class PowerMOSFET:
         return bv * (1.0 + p.TC_BV * (T - self.TNOM))
 
     def _multiplication(self, V, T):
+        """Miller avalanche multiplication M at blocking voltage V [V] (capped at 1e4 beyond BV)."""
         if V <= 0.0:
             return 1.0
         d                   = 1.0 - (V / self.breakdown_voltage(T)) ** self.p.M_EXP
         return 1.0 / max(d, 1e-4)                                                      # cap M at 1e4 beyond BV
 
     def _w_dep(self, V, T):
+        """Drift-region depletion width [m] at reverse voltage V, limited to the drift thickness."""
         p                   = self.p
         w                   = math.sqrt(2.0 * EPS_SI * max(self.v_bi(T) + V, 0.0) / (Q * p.ND_DRIFT))
         return min(w, p.T_DRIFT)
@@ -167,11 +180,13 @@ class PowerMOSFET:
         return nvt / Rs * float(wrightomega(z).real) - Is
 
     def _r_pkg(self, T):
+        """Source and drain package/metal resistances (Rs, Rd) [ohm] at T [K]."""
         f                   = 1.0 + self.p.TCR_PKG * (T - self.TNOM)
         return self.p.RS_PKG * f, self.p.RD_PKG * f
 
     # ------------------------------------------------------------- DC solver
     def _internal(self, I, Vgs, Vds, T):
+        """Internal voltages for channel current I: (Vgs_int, Vds_channel, Vdx, Vdrift) [V]."""
         Rs, Rd              = self._r_pkg(T)
         Vdr                 = self._v_drift(I, T)
         Vdx                 = Vds - I * Rd - Vdr                                       # top of drift region wrt external S
@@ -182,6 +197,7 @@ class PowerMOSFET:
     def solve(self, Vgs, Vds, T=298.15):
         """Isothermal DC operating point."""
         def g(I):
+            """KCL residual: BSIM6 channel current at the internal voltages minus the trial current I."""
             Vgi, Vch, _, _  = self._internal(I, Vgs, Vds, T)
             if math.isinf(Vch):
                 return -I
@@ -208,6 +224,7 @@ class PowerMOSFET:
                               Vdx=Vdx, Vdrift=Vdr, M=M, T=T)
 
     def id(self, Vgs, Vds, T=298.15):
+        """Total external drain current [A] at Vgs, Vds [V] and junction temperature T [K]."""
         return self.solve(Vgs, Vds, T).Id
 
     def solve_electrothermal(self, Vgs, Vds, Ta=298.15, Rth=None, tol=1e-4, maxiter=100):
@@ -261,6 +278,7 @@ class PowerMOSFET:
         return Qrt + (Vj - Vrt) * EPS_SI / p.T_DRIFT
 
     def _qj(self, Vds, T):
+        """Body-drift junction charge [C] at Vds, zero at Vds = 0 (constant-C extension in forward bias)."""
         Vbi                 = self.v_bi(T)
         Vj0                 = (1.0 - self.p.FC) * Vbi
         Vj                  = Vbi + Vds
@@ -283,6 +301,7 @@ class PowerMOSFET:
     def capacitances(self, Vds, Vgs=0.0, T=298.15, h=1e-3):
         """Datasheet capacitances Ciss, Coss, Crss [F]."""
         def q(vg, vd):
+            """Terminal charges (Qg, Qd) [C] at gate voltage vg and drain voltage vd."""
             return self.charges(vg, vd, T)
         qg_gp, qd_gp        = q(Vgs + h, Vds)
         qg_gm, qd_gm        = q(Vgs - h, Vds)

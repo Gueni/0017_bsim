@@ -109,6 +109,7 @@ class BSIM6Params:
 #?----------------------------------------------------------------------------------------------------------------------------------------
 @dataclass
 class PowerParams:
+    """Power MOSFET card: drift region, package, capacitance geometry, avalanche, body diode, thermal. Units are SI."""
     # --- drift region -----------------------------------------------------------
     ND_DRIFT   : float      = 4.0e21                                                   # drift doping [m^-3]  (4e15 cm^-3)
     T_DRIFT    : float      = 6.5e-6                                                   # drift thickness [m]

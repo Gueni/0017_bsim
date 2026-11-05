@@ -41,18 +41,19 @@ DEV                         = PowerMOSFET()
 T25, T150                   = 298.15, 423.15
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_zero_current_at_zero_vds():
+    """No drain current flows at Vds = 0 for any gate bias."""
     for vgs in (0.0, 2.0, 5.0, 10.0):
         assert M.ids(vgs, 0.0) == 0.0
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_source_drain_symmetry():
-    # BSIM6 is symmetric: swapping D and S flips the current exactly
+    """BSIM6 is symmetric: swapping D and S flips the current exactly."""
     for vg in (1.0, 3.0, 8.0):
         a                   = M.evaluate(1.3, vg, 0.2, 0.0).Ids
         b                   = M.evaluate(0.2, vg, 1.3, 0.0).Ids
         assert math.isclose(a, -b, rel_tol=1e-12)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_gummel_symmetry_odd_current():
-    # Id(Vx) with Vd = +Vx, Vs = -Vx must be odd and smooth through Vds = 0
+    """Gummel symmetry: Id(Vx) with Vd = +Vx, Vs = -Vx is odd and smooth through Vds = 0."""
     vx                      = np.linspace(-0.05, 0.05, 21)
     i                       = np.array([M.evaluate(x, 5.0, -x, 0.0).Ids for x in vx])
     assert np.allclose(i, -i[::-1], rtol=1e-10, atol=1e-15)
@@ -60,11 +61,13 @@ def test_gummel_symmetry_odd_current():
     assert np.max(np.abs(d2)) < 1e-2 * np.max(np.abs(i))
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_charge_conservation():
+    """Terminal charges sum to zero (Qg + Qd + Qs + Qb = 0) in every region."""
     for vgs, vds, vbs in ((0.0, 0.0, 0.0), (-3.0, 1.0, 0.0), (3.0, 0.5, -1.0), (10.0, 5.0, 0.0)):
         r                   = M.evaluate(vds, vgs, 0.0, vbs)
         assert abs(r.Qg + r.Qd + r.Qs + r.Qb) < 1e-20
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_monotonic_and_smooth_output():
+    """Output curves have positive gds and no kink at Vdsat in strong inversion."""
     vds                     = np.linspace(0.0, 10.0, 401)
     for vgs in (3.0, 5.0, 10.0):
         i                   = np.array([M.ids(vgs, v) for v in vds])
@@ -76,38 +79,44 @@ def test_monotonic_and_smooth_output():
             assert np.max(np.abs(np.diff(gds))) < 2e-3 * i.max()
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_monotonic_transfer():
+    """Drain current rises monotonically with Vgs."""
     vgs                     = np.linspace(0.0, 15.0, 301)
     i                       = np.array([M.ids(v, 1.0) for v in vgs])
     assert np.all(np.diff(i) > 0.0)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_strong_inversion_cgg_equals_cox():
+    """In strong inversion Cgg approaches the oxide capacitance Cox * W * L."""
     c                       = M.capacitances(10.0, 0.0)
     assert math.isclose(c["Cgg"], M.Cox * M.Weff * M.Leff, rel_tol=0.05)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_subthreshold_slope_physical():
-    # SS = n * Vt * ln10 with n = 1 + Cdep/Cox  (~2.8 for this thick-oxide body)
+    """SS = n * Vt * ln10 with n = 1 + Cdep/Cox (~2.8 for this thick-oxide body)."""
     i1, i2                  = M.ids(1.6, 1.0), M.ids(1.7, 1.0)
     ss                      = 100.0 / math.log10(i2 / i1)
     assert 60.0 < ss < 250.0
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_threshold_decreases_with_temperature():
+    """Vth falls with temperature for both the BSIM6 core and the power device."""
     assert M.vth(T=T150) < M.vth(T=T25)
     assert DEV.vth(T=T150) < DEV.vth(T=T25)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_pmos_mirror():
-    # BSIM6 uses eta = ETAMOB/3 for holes vs ETAMOB/2 for electrons (1.139)
+    """PMOS mirrors NMOS; BSIM6 uses eta = ETAMOB/3 for holes vs ETAMOB/2 for electrons (1.139)."""
     p                       = BSIM6Model(BSIM6Params(TYPE=-1, ETAMOB=1.5))
     assert math.isclose(p.ids(-5.0, -1.0), -M.ids(5.0, 1.0), rel_tol=1e-12)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_rdson_positive_tempco():
+    """RDS(on) rises with temperature by a realistic factor (25 -> 125 C)."""
     assert 1.4 < DEV.rdson(T=398.15) / DEV.rdson(T=T25) < 2.2
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_zero_temperature_coefficient_point_exists():
+    """The transfer curves at 25 and 150 C cross (zero-temperature-coefficient point)."""
     lo                      = DEV.id(3.5, 10.0, T150) - DEV.id(3.5, 10.0, T25)
     hi                      = DEV.id(8.0, 10.0, T150) - DEV.id(8.0, 10.0, T25)
     assert lo > 0.0 > hi
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_breakdown_and_leakage():
+    """BV is in the expected range, current runs away past BV, and IDSS rises strongly with T."""
     bv                      = DEV.breakdown_voltage()
     assert 90.0 < bv < 120.0
     assert DEV.id(0.0, 0.9 * bv, T25) < 1e-5
@@ -115,17 +124,20 @@ def test_breakdown_and_leakage():
     assert DEV.id(0.0, 50.0, T150) > 100 * DEV.id(0.0, 50.0, T25)                      # IDSS(T)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_capacitances_nonlinear():
+    """Crss and Coss collapse as the drift region depletes; Ciss stays much larger than Crss."""
     c0, c50                 = DEV.capacitances(0.5), DEV.capacitances(50.0)
     assert c50["Crss"] < 0.2 * c0["Crss"]                                              # Crss collapses as drift depletes
     assert c50["Coss"] < c0["Coss"]
     assert c50["Ciss"] > 10 * c50["Crss"]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_body_diode_conducts_in_third_quadrant():
+    """The body diode conducts at negative Vds, and its forward voltage drops with temperature."""
     assert -DEV.id(0.0, -0.9, T25) > 1.0
     # diode forward voltage drops with temperature at low current
     assert -DEV.id(0.0, -0.5, T150) > -DEV.id(0.0, -0.5, T25)
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def test_gate_charge_has_miller_plateau():
+    """The gate-charge curve is monotonic, with a Miller plateau and consistent Qgs / Qgd / Qg."""
     qg, vg, vd, info        = DEV.gate_charge()
     assert np.all(np.diff(qg) > -1e-15)
     assert 3.0 < info["Vplateau"] < 5.5
