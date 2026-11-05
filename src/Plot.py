@@ -1,205 +1,134 @@
 #!/usr/bin/env python
 # coding=utf-8
-#? -------------------------------------------------------------------------------
-#?
-#?                 ______  ____  _______  _____
-#?                / __ \ \/ /  |/  / __ \/ ___/
-#?               / /_/ /\  / /|_/ / / / /\__ \
-#?              / ____/ / / /  / / /_/ /___/ /
-#?             /_/     /_/_/  /_/\____//____/
-#?
-#? Name:        plot.py
-#? Purpose:     Plot and compare results from different MOSFET models using Plotly
-#?
-#? Author:      Mohamed Gueni (mohamedgueni@outlook.com)
-#?
-#? Created:     21/05/2025
-#? Licence:     Refer to the LICENSE file
-#? -------------------------------------------------------------------------------
-import pandas as pd
-import numpy as np
+# -------------------------------------------------------------------------------
+# Name:        Plot.py
+# Purpose:     Datasheet-style HTML report for the BSIM6 power MOSFET model
+#
+# Author:      Mohamed Gueni (mohamedgueni@outlook.com)
+# Licence:     Refer to the LICENSE file
+# -------------------------------------------------------------------------------
+import html
+import os
+
 import plotly.graph_objects as go
 import plotly.io as pio
-import os
-import re
-#? -------------------------------------------------------------------------------
-class MOSFETModelComparer:
-    def __init__(self, csv_paths, output_html=None):
-        if len(csv_paths) < 1:
-            raise ValueError("At least one CSV file is required.")
-        self.csv_paths      = csv_paths
-        self.output_html    = output_html or r'D:\WORKSPACE\PyModules\10_pymos\data\comparison_plot.html'
-        self.models         = self._load_models()
 
-    def _load_models(self):
-        models = []
-        required_cols = {"time", "T", "VGS", "VDS", "ID"}
-        for path in self.csv_paths:
-            df = pd.read_csv(path)
-            if not required_cols.issubset(df.columns):
-                raise ValueError(f"CSV '{path}' missing required columns: {required_cols}")
-            name = self._extract_model_name(path)
-            models.append({"name": name, "df": df})
-        return models
+_PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2", "#db2777"]
 
-    def _extract_model_name(self, path):
-        # Extract file name without extension and clean it
-        return re.sub(r'[_\-]', ' ', os.path.splitext(os.path.basename(path))[0]).strip()
 
-    def _create_dropdown_menu(self):
-        # Create dropdown menu options with multi-select capability
-        options = [
-            {'label': 'All Models', 'value': 'all'},
-            {'label': 'None', 'value': 'none'}
-        ]
-        options.extend([{'label': model['name'], 'value': model['name']} for model in self.models])
-        
-        # Create custom buttons for selecting combinations
-        if len(self.models) > 1:
-            for i in range(len(self.models)):
-                for j in range(i+1, len(self.models)):
-                    name1 = self.models[i]['name']
-                    name2 = self.models[j]['name']
-                    options.append({
-                        'label': f"{name1} & {name2}",
-                        'value': f"{name1},{name2}"
-                    })
-        return options
+def _fig(title, xlab, ylab, ylog=False, xlog=False):
+    fig = go.Figure()
+    fig.update_layout(
+        title=dict(text=title, x=0.02, font=dict(size=16)),
+        xaxis_title=xlab, yaxis_title=ylab,
+        template="plotly_white", height=430,
+        margin=dict(l=70, r=20, t=50, b=55),
+        legend=dict(orientation="v", x=1.0, xanchor="right", y=1.0, bgcolor="rgba(255,255,255,0.7)"),
+        colorway=_PALETTE,
+    )
+    if ylog:
+        fig.update_yaxes(type="log", exponentformat="power")
+    if xlog:
+        fig.update_xaxes(type="log")
+    return fig
 
-    def _create_figure_with_dropdown(self, title, x_title, y_title, traces):
-        fig = go.Figure()
-        
-        # Add all traces initially (will be controlled by dropdown)
-        for trace in traces:
-            fig.add_trace(trace)
-        
-        # Create dropdown buttons
-        dropdown_buttons = []
-        options = self._create_dropdown_menu()
-        
-        # Create visibility lists for each option
-        visibility_lists = []
-        for option in options:
-            if option['value'] == 'all':
-                # Show all traces
-                visibility = [True] * len(traces)
-            elif option['value'] == 'none':
-                # Hide all traces
-                visibility = [False] * len(traces)
-            else:
-                # Show traces for selected models (can be multiple)
-                selected_models = option['value'].split(',')
-                visibility = [
-                    any(trace.name.startswith(model) for model in selected_models)
-                    for trace in traces
-                ]
-            visibility_lists.append(visibility)
-        
-        # Create buttons for dropdown
-        for i, option in enumerate(options):
-            dropdown_buttons.append(
-                dict(
-                    label=option['label'],
-                    method='update',
-                    args=[{'visible': visibility_lists[i]},
-                          {'title': f"{title} - {option['label']}"}]
-                )
-            )
-        
-        # Update layout with dropdown
-        fig.update_layout(
-            title=f"{title} - All Models",
-            xaxis_title=x_title,
-            yaxis_title=y_title,
-            updatemenus=[{
-                'buttons': dropdown_buttons,
-                'direction': 'down',
-                'showactive': True,
-                'x': 1.0,
-                'xanchor': 'right',
-                'y': 1.15,
-                'yanchor': 'top'
-            }]
-        )
-        
-        return fig
 
-    def plot(self):
-        # Prepare all traces for each figure
-        id_temp_traces = []
-        id_vgs_traces = []
-        id_vds_traces = []
-        
-        for model in self.models:
-            df = model["df"]
-            
-            # Id vs Temperature traces
-            idx = (df["VGS"] == 20) & (df["VDS"] == 10)
-            id_temp_traces.append(
-                go.Scatter(x=df["T"][idx], y=df["ID"][idx], name=f"{model['name']} Id")
-            )
-            
-            # Id vs Vgs traces
-            for vds in np.unique(df["VDS"]):
-                idx = (df["VDS"] == vds) & (df["T"] == 400)
-                if np.any(idx):
-                    id_vgs_traces.append(
-                        go.Scatter(x=df["VGS"][idx], y=df["ID"][idx],
-                        name=f"{model['name']} Vds={vds:.1f}")
-                    )
-            
-            # Id vs Vds traces
-            for vgs in np.unique(df["VGS"]):
-                idx = (df["VGS"] == vgs) & (df["T"] == 400)
-                if np.any(idx):
-                    id_vds_traces.append(
-                        go.Scatter(x=df["VDS"][idx], y=df["ID"][idx],
-                        name=f"{model['name']} Vgs={vgs:.1f}")
-                    )
-        
-        # Create figures with dropdown menus
-        fig_id_temp = self._create_figure_with_dropdown(
-            "Id vs Temperature", "Temperature [K]", "Id [A]", id_temp_traces)
-        fig_id_vgs = self._create_figure_with_dropdown(
-            "Id vs Vgs", "Vgs [V]", "Id [A]", id_vgs_traces)
-        fig_id_vds = self._create_figure_with_dropdown(
-            "Id vs Vds", "Vds [V]", "Id [A]", id_vds_traces)
-        
-        figures = [fig_id_temp, fig_id_vgs, fig_id_vds]
+def _lines(fig, df, x, y, group, label_fmt, dash_by=None):
+    for i, (key, sub) in enumerate(df.groupby(group, sort=True)):
+        name = label_fmt(key)
+        dash = None
+        if dash_by is not None:
+            dash = dash_by(key)
+        fig.add_trace(go.Scatter(x=sub[x], y=sub[y], mode="lines", name=name,
+                                 line=dict(width=2, dash=dash)))
+    return fig
 
-        # --- Save HTML ---
-        os.makedirs(os.path.dirname(self.output_html), exist_ok=True)
-        html_parts = [pio.to_html(fig, full_html=False, include_plotlyjs='cdn') for fig in figures]
-        full_html = """
-        <html>
-        <head>
-            <title>MOSFET Comparison</title>
-            <style>
-                .plot-container {
-                    margin: 20px auto;
-                    max-width: 1200px;
-                }
-                .instructions {
-                    background-color: #f8f9fa;
-                    padding: 15px;
-                    border-radius: 5px;
-                    margin-bottom: 20px;
-                    max-width: 1200px;
-                    margin: 0 auto 20px auto;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="instructions">
-                <h2>MOSFET Model Comparison</h2>
-                <p>Use the dropdown menus in each plot to select which models to display.</p>
-                <p>Options include viewing all models together, none, individual models, or combinations of models.</p>
-            </div>
-        """ + "\n<div class='plot-container'>\n".join(html_parts) + "\n</body></html>"
 
-        with open(self.output_html, "w", encoding="utf-8") as f:
-            f.write(full_html)
+def build_figures(d):
+    """d: dict of pandas DataFrames produced by main.characterize()."""
+    figs = []
 
-        print(f"HTML with all plots saved to: {self.output_html}")
+    f = _fig("Output characteristics  I<sub>D</sub>(V<sub>DS</sub>)", "V<sub>DS</sub> [V]", "I<sub>D</sub> [A]")
+    _lines(f, d["output"], "Vds", "Id", ["Tc", "Vgs"],
+           lambda k: f"V<sub>GS</sub>={k[1]:g} V, {k[0]:g} °C",
+           dash_by=lambda k: "dash" if k[0] > 30 else None)
+    figs.append(f)
 
-#? -------------------------------------------------------------------------------
+    f = _fig("Transfer characteristics  (V<sub>DS</sub> = 10 V) — note the ZTC crossing",
+             "V<sub>GS</sub> [V]", "I<sub>D</sub> [A]")
+    _lines(f, d["transfer"], "Vgs", "Id", "Tc", lambda k: f"{k:g} °C")
+    figs.append(f)
+
+    f = _fig("Subthreshold  (V<sub>DS</sub> = 10 V)", "V<sub>GS</sub> [V]", "I<sub>D</sub> [A]", ylog=True)
+    sub = d["transfer"][d["transfer"]["Id"] > 0]
+    _lines(f, sub, "Vgs", "Id", "Tc", lambda k: f"{k:g} °C")
+    figs.append(f)
+
+    f = _fig("On-resistance vs junction temperature  (I<sub>D</sub> = 20 A)",
+             "T<sub>j</sub> [°C]", "R<sub>DS(on)</sub> [mΩ]")
+    _lines(f, d["rdson"], "Tc", "Rdson_mohm", "Vgs", lambda k: f"V<sub>GS</sub>={k:g} V")
+    figs.append(f)
+
+    f = _fig("Threshold voltage vs temperature  (I<sub>D</sub> = 250 µA, V<sub>DS</sub> = V<sub>GS</sub>)",
+             "T<sub>j</sub> [°C]", "V<sub>GS(th)</sub> [V]")
+    f.add_trace(go.Scatter(x=d["vth"]["Tc"], y=d["vth"]["Vth"], mode="lines+markers", name="V<sub>th</sub>"))
+    figs.append(f)
+
+    f = _fig("Capacitances  (V<sub>GS</sub> = 0, f → 0)", "V<sub>DS</sub> [V]", "C [pF]", ylog=True)
+    c = d["caps"]
+    for col in ("Ciss", "Coss", "Crss"):
+        f.add_trace(go.Scatter(x=c["Vds"], y=c[col] * 1e12, mode="lines", name=col, line=dict(width=2)))
+    figs.append(f)
+
+    f = _fig("Gate charge  (V<sub>DD</sub> = 50 V, I<sub>D</sub> = 20 A)", "Q<sub>G</sub> [nC]", "V [V]")
+    g = d["gate_charge"]
+    f.add_trace(go.Scatter(x=g["Qg"] * 1e9, y=g["Vgs"], mode="lines", name="V<sub>GS</sub>", line=dict(width=2)))
+    f.add_trace(go.Scatter(x=g["Qg"] * 1e9, y=g["Vds"] / 5.0, mode="lines", name="V<sub>DS</sub> / 5",
+                           line=dict(width=2, dash="dot")))
+    figs.append(f)
+
+    f = _fig("Body diode (third quadrant, V<sub>GS</sub> = 0)", "V<sub>SD</sub> [V]", "I<sub>S</sub> [A]", ylog=True)
+    _lines(f, d["diode"], "Vsd", "Is", "Tc", lambda k: f"{k:g} °C")
+    figs.append(f)
+
+    f = _fig("Off-state leakage and avalanche  (V<sub>GS</sub> = 0)", "V<sub>DS</sub> [V]", "I<sub>DSS</sub> [A]", ylog=True)
+    _lines(f, d["off"], "Vds", "Id", "Tc", lambda k: f"{k:g} °C")
+    figs.append(f)
+    return figs
+
+
+def write_report(d, summary, path, title="BSIM6 Power MOSFET Model"):
+    figs = build_figures(d)
+    rows = "\n".join(
+        f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in summary.items())
+    divs = []
+    for i, fig in enumerate(figs):
+        divs.append('<div class="card">' + pio.to_html(
+            fig, full_html=False, include_plotlyjs=("cdn" if i == 0 else False),
+            config={"displaylogo": False}) + "</div>")
+    page = f"""<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{html.escape(title)}</title>
+<style>
+ body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background:#f6f7f9; color:#111827; }}
+ header {{ padding: 24px 32px 8px; }}
+ h1 {{ margin: 0 0 4px; font-size: 22px; }}
+ p.sub {{ margin: 0; color:#6b7280; }}
+ .grid {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap:16px; padding:16px 32px 32px; }}
+ .card {{ background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:6px; overflow:hidden; }}
+ table {{ border-collapse: collapse; margin: 12px 32px; background:#fff; border:1px solid #e5e7eb; border-radius:10px; }}
+ td {{ padding: 6px 14px; border-bottom:1px solid #f0f1f3; font-variant-numeric: tabular-nums; }}
+ td:first-child {{ color:#374151; }}
+ @media (max-width: 640px) {{ .grid {{ grid-template-columns: 1fr; padding:16px; }} table {{ margin: 12px 16px; }} }}
+</style></head>
+<body>
+<header><h1>{html.escape(title)}</h1>
+<p class="sub">BSIM6.0 charge-based channel + physics-based drift, JFET, avalanche, body diode and capacitance models.</p></header>
+<table>{rows}</table>
+<div class="grid">
+{''.join(divs)}
+</div></body></html>"""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    return path

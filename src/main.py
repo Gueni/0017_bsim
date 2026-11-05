@@ -1,99 +1,122 @@
-
 #!/usr/bin/env python
 # coding=utf-8
-#? -------------------------------------------------------------------------------
-#?
-#?                 ______  ____  _______  _____
-#?                / __ \ \/ /  |/  / __ \/ ___/
-#?               / /_/ /\  / /|_/ / / / /\__ \
-#?              / ____/ / / /  / / /_/ /___/ /
-#?             /_/     /_/_/  /_/\____//____/
-#?
-#? Name:        main.py
-#? Purpose:     Main entry point for running simulations using the pymos models
-#?
-#? Author:      Mohamed Gueni (mohamedgueni@outlook.com)
-#? Created:     21/05/2025
-#? Licence:     Refer to the LICENSE file
-#? -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# Name:        main.py
+# Purpose:     Characterize the BSIM6-based power MOSFET and write a datasheet
+#              style report (CSV data + interactive HTML plots) to ../data
+#
+# Author:      Mohamed Gueni (mohamedgueni@outlook.com)
+# Created:     21/05/2025
+# Licence:     Refer to the LICENSE file
+# -------------------------------------------------------------------------------
+import argparse
+import sys
+import time
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-# import LV_13_BSIM
-import LV_1_Shichman_Hodges
-# import LV_28_BSIM_derivative
-# import LV_39_BSIM2
-# import LV_47_BSIM3v2
-import LV_49_BSIM3v3
-import BSIM3v3_2
-# import simple_model
-from Plot import MOSFETModelComparer
-#? -------------------------------------------------------------------------------
-points = 10     
-Vgs_values = np.linspace(0, 20, points)
-Vds_values = np.linspace(0, 10, points)
-T_values   = np.linspace(300, 400.0, points)
+from scipy.optimize import brentq
 
-# LV_1_Shichman_Hodges_PATH   = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_1_Shichman_Hodges.csv"
-# LV_13_BSIM_PATH             = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_13_BSIM.csv"
-# LV_28_BSIM2_mod_PATH        = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_28_BSIM2_mod.csv"
-# LV_39_BSIM2_PATH            = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_39_BSIM2.csv"
-# LV_47_BSIM3v2_PATH          = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_47_BSIM3v2.csv"
-# LV_49_BSIM3v3_PATH          = r"D:\WORKSPACE\BSIM-Python-Implementation\data\LV_49_BSIM3v3.csv"
-# simple_model_PATH           = r"D:\WORKSPACE\BSIM-Python-Implementation\data\simple_model.csv"
-BSIM3v3_2_PATH                   = r"D:\WORKSPACE\0017_bsim\data\BSIM3v3_2.csv"
-PLOT                        = True
-# LV_1_Shichman_Hodges        = LV_1_Shichman_Hodges.ShichmanHodgesModel()
-# LV_13_BSIM                  = LV_13_BSIM.BSIMLevel13Model()
-# LV_28_BSIM2_mod             = LV_28_BSIM_derivative.BSIM_Model()
-# LV_39_BSIM2                 = LV_39_BSIM2.BSIM2Model()
-# LV_47_BSIM3v2               = LV_47_BSIM3v2.BSIM3v2_Model()
-# LV_49_BSIM3v3               = LV_49_BSIM3v3.BSIM3v3_Model()
-# simple_model                = simple_model.simpleModel()
-BSIM3v3_2_model            = BSIM3v3_2.BSIM3v3_Model()
-#? -------------------------------------------------------------------------------
-def simulate_model(model, T_values, Vgs_values, Vds_values, path):
-    records         = []
-    combinations    = [(T, Vgs, Vds) for T in T_values for Vgs in Vgs_values for Vds in Vds_values]
-    total_points    = len(combinations)
+from bsim6 import BSIM6Model, BSIM6Params
+from power_mosfet import PowerMOSFET, PowerParams
+from Plot import write_report
 
-    for i, (T, Vgs, Vds) in enumerate(combinations):
-        Id  = model.compute(Vgs, Vds,0.0,T)
-        records.append({
-            'time'  : i // total_points ,
-            'T'     : T                 ,
-            'VGS'   : Vgs               ,
-            'VDS'   : Vds               ,
-            'ID'    : Id                
-        })
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+K0 = 273.15
 
-    df = pd.DataFrame(records)
-    df.to_csv(path, index=False)
+
+def characterize(dev, points=60):
+    d = {}
+
+    rows = []
+    for Tc in (25.0, 125.0):
+        for vgs in (4.0, 4.5, 5.0, 6.0, 8.0, 10.0):
+            for vds in np.linspace(0.0, 10.0, points):
+                rows.append((Tc, vgs, vds, dev.id(vgs, vds, Tc + K0)))
+    d["output"] = pd.DataFrame(rows, columns=["Tc", "Vgs", "Vds", "Id"])
+
+    rows = []
+    for Tc in (-40.0, 25.0, 100.0, 175.0):
+        for vgs in np.linspace(0.0, 8.0, 2 * points):
+            rows.append((Tc, vgs, dev.id(vgs, 10.0, Tc + K0)))
+    d["transfer"] = pd.DataFrame(rows, columns=["Tc", "Vgs", "Id"])
+
+    rows = []
+    for vgs in (4.5, 6.0, 10.0):
+        for Tc in np.linspace(-40.0, 175.0, 24):
+            rows.append((vgs, Tc, 1e3 * dev.rdson(vgs, 20.0, Tc + K0)))
+    d["rdson"] = pd.DataFrame(rows, columns=["Vgs", "Tc", "Rdson_mohm"])
+
+    d["vth"] = pd.DataFrame([(Tc, dev.vth(T=Tc + K0)) for Tc in np.linspace(-40.0, 175.0, 24)],
+                            columns=["Tc", "Vth"])
+
+    rows = []
+    for vds in np.concatenate([np.linspace(0.0, 2.0, 21)[:-1], np.linspace(2.0, 100.0, 50)]):
+        c = dev.capacitances(vds)
+        rows.append((vds, c["Ciss"], c["Coss"], c["Crss"]))
+    d["caps"] = pd.DataFrame(rows, columns=["Vds", "Ciss", "Coss", "Crss"])
+
+    qg, vg, vd, gq = dev.gate_charge(Vdd=50.0, Iload=20.0, Vg_max=10.0)
+    d["gate_charge"] = pd.DataFrame({"Qg": qg, "Vgs": vg, "Vds": vd})
+
+    rows = []
+    for Tc in (25.0, 125.0, 175.0):
+        for vsd in np.linspace(0.3, 1.3, points):
+            rows.append((Tc, vsd, -dev.id(0.0, -vsd, Tc + K0)))
+    d["diode"] = pd.DataFrame(rows, columns=["Tc", "Vsd", "Is"])
+
+    rows = []
+    for Tc in (25.0, 100.0, 150.0):
+        for vds in np.linspace(1.0, 1.08 * dev.breakdown_voltage(), points):
+            rows.append((Tc, vds, dev.id(0.0, vds, Tc + K0)))
+    d["off"] = pd.DataFrame(rows, columns=["Tc", "Vds", "Id"])
+    return d, gq
+
+
+def summarize(dev, gq):
+    c50 = dev.capacitances(50.0)
+    vsd = brentq(lambda v: -dev.id(0.0, -v, 298.15) - 20.0, 0.2, 3.0)
+    return {
+        "V(BR)DSS (25 °C)": f"{dev.breakdown_voltage():.1f} V",
+        "VGS(th) @ 250 µA, 25 °C / 150 °C": f"{dev.vth():.2f} V / {dev.vth(T=423.15):.2f} V",
+        "RDS(on) @ VGS=10 V, ID=20 A, 25 °C": f"{1e3 * dev.rdson():.2f} mΩ",
+        "RDS(on) @ VGS=10 V, ID=20 A, 125 °C": f"{1e3 * dev.rdson(T=398.15):.2f} mΩ",
+        "  of which drift region (25 °C)": f"{1e3 * dev.r_drift(298.15):.2f} mΩ",
+        "IDSS @ 80 V, 25 °C / 150 °C": f"{dev.id(0, 80, 298.15):.2e} A / {dev.id(0, 80, 423.15):.2e} A",
+        "Ciss / Coss / Crss @ VDS=50 V": f"{c50['Ciss']*1e12:.0f} / {c50['Coss']*1e12:.0f} / {c50['Crss']*1e12:.1f} pF",
+        "Qg / Qgs / Qgd (50 V, 20 A, 10 V)": f"{gq['Qg']*1e9:.1f} / {gq['Qgs']*1e9:.1f} / {gq['Qgd']*1e9:.1f} nC",
+        "Miller plateau": f"{gq['Vplateau']:.2f} V",
+        "VSD @ IS=20 A (body diode)": f"{vsd:.3f} V",
+    }
+
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--points", type=int, default=60, help="points per sweep")
+    ap.add_argument("--out", type=Path, default=DATA_DIR)
+    args = ap.parse_args()
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # Windows consoles
+    except AttributeError:
+        pass
 
-    # simulate_model(LV_1_Shichman_Hodges     , T_values, Vgs_values, Vds_values, LV_1_Shichman_Hodges_PATH)
-    # simulate_model(LV_13_BSIM               , T_values, Vgs_values, Vds_values, LV_13_BSIM_PATH          )
-    # simulate_model(LV_28_BSIM2_mod          , T_values, Vgs_values, Vds_values, LV_28_BSIM2_mod_PATH     )
-    # simulate_model(LV_39_BSIM2              , T_values, Vgs_values, Vds_values, LV_39_BSIM2_PATH         )
-    # simulate_model(LV_47_BSIM3v2            , T_values, Vgs_values, Vds_values, LV_47_BSIM3v2_PATH       )
-    # simulate_model(LV_49_BSIM3v3            , T_values, Vgs_values, Vds_values, LV_49_BSIM3v3_PATH       )
-    # simulate_model(simple_model             , T_values, Vgs_values, Vds_values, simple_model_PATH        )
-    simulate_model(BSIM3v3_2_model            , T_values, Vgs_values, Vds_values, BSIM3v3_2_PATH       )
+    dev = PowerMOSFET(BSIM6Model(BSIM6Params()), PowerParams())
+
+    t0 = time.perf_counter()
+    data, gq = characterize(dev, args.points)
+    summary = summarize(dev, gq)
+    args.out.mkdir(parents=True, exist_ok=True)
+    for name, df in data.items():
+        df.to_csv(args.out / f"{name}.csv", index=False)
+    report = write_report(data, summary, str(args.out / "power_mosfet_report.html"))
+
+    w = max(len(k) for k in summary)
+    for k, v in summary.items():
+        print(f"{k:<{w}}  {v}")
+    print(f"\nCSV data + report written to {args.out}  ({time.perf_counter() - t0:.1f} s)")
+    print(f"Open: {report}")
 
 
-    if PLOT:
-        plotter = MOSFETModelComparer([
-                                    #    LV_1_Shichman_Hodges_PATH, 
-                                    #    LV_13_BSIM_PATH          , 
-                                    #    LV_28_BSIM2_mod_PATH     ,
-                                    #    LV_39_BSIM2_PATH         ,
-                                    #    LV_47_BSIM3v2_PATH       ,
-                                    #    LV_49_BSIM3v3_PATH       ,
-                                       BSIM3v3_2_PATH
-                                    #    simple_model_PATH
-                                       ])
-        plotter.plot()
-#? -------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
-#? -------------------------------------------------------------------------------
