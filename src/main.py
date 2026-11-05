@@ -45,7 +45,10 @@ from    Plot                        import  write_report
 #?----------------------------------------------------------------------------------------------------------------------------------------
 DATA_DIR                    = Path(__file__).resolve().parent.parent / "data"
 K0                          = 273.15
-LOG_WIDTH                   = 140                                                      # character width of the tables in bsim.log
+CLEAR_DATA                  = True                                                    # True: delete old csv/html/log files before each run
+OUTPUT_KINDS                = {"csv": ".csv", "html": ".html", "log": ".log"}          # sub-folder of the output dir -> file type it holds
+STAMP_FMT                   = "%Y-%m-%d_%H-%M-%S"                                     # date-time suffix of every generated file
+LOG_WIDTH                   = 140                                                     # character width of the tables in bsim.log
 _FIELD                      = re.compile(r"^\s+(\w+)\s*:[^=#]*(?:=[^#]*)?(?:#\s*(.*))?$")
 _SECTION                    = re.compile(r"^\s+#\s*-+\s*(.*?)\s*-*\s*$")
 #?----------------------------------------------------------------------------------------------------------------------------------------
@@ -203,12 +206,12 @@ def files_table(paths):
         table.add_row(p.name, what, str(p.parent))
     return table
 #?----------------------------------------------------------------------------------------------------------------------------------------
-def write_log(path, args, dev, summary, outputs, elapsed):
-    """Write bsim.log: run info, both model cards, derived quantities, datasheet summary and output files."""
+def write_log(path, args, dev, summary, outputs, elapsed, started):
+    """Write the run log: run info, both model cards, derived quantities, datasheet summary and output files."""
     with open(path, "w", encoding="utf-8") as fh:
         log                 = Console(file=fh, width=LOG_WIDTH, color_system=None, force_terminal=False,
                                       legacy_windows=False, emoji=False)
-        log.print(Rule(f"BSIM6 Power MOSFET run — {datetime.now():%Y-%m-%d %H:%M:%S}"))
+        log.print(Rule(f"BSIM6 Power MOSFET run — {started:%Y-%m-%d %H:%M:%S}"))
         info                = _styled_table("Run", ("Setting", "bold cyan", "left"), ("Value", "bold green", "left"))
         for k, v in (("Python", sys.version.split()[0]), ("Points per sweep", str(args.points)),
                      ("Output directory", str(args.out)), ("Run time", f"{elapsed:.1f} s")):
@@ -219,11 +222,33 @@ def write_log(path, args, dev, summary, outputs, elapsed):
             log.print()
     return path
 #?----------------------------------------------------------------------------------------------------------------------------------------
+def clear_data(out_dir, console=None):
+    """Delete previously generated files from out_dir/csv, out_dir/html and out_dir/log.
+
+    Only files of the matching type are removed (*.csv in csv/, *.html in html/, *.log in log/);
+    the folders themselves and any other files are kept. Returns the number of files deleted.
+    """
+    removed                 = 0
+    for sub, ext in OUTPUT_KINDS.items():
+        folder              = Path(out_dir) / sub
+        if not folder.is_dir():
+            continue
+        for f in folder.glob(f"*{ext}"):
+            if f.is_file():
+                f.unlink()
+                removed    += 1
+    if console is not None:
+        console.print(f"[bold yellow]Cleared[/] {removed} old file{'s' if removed != 1 else ''} "
+                      f"from [green]{', '.join(OUTPUT_KINDS)}[/] in {out_dir}")
+    return removed
+#?----------------------------------------------------------------------------------------------------------------------------------------
 def main():
     """Command-line entry point: characterize the default device, write CSVs + HTML report, print the summary."""
     ap                      = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--points", type=int, default=60, help="points per sweep")
     ap.add_argument("--out", type=Path, default=DATA_DIR)
+    ap.add_argument("--clear", action="store_true", default=CLEAR_DATA,
+                    help="delete old csv/html/log files before this run (or set CLEAR_DATA = True)")
     args                    = ap.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")                     # Windows consoles
@@ -231,33 +256,45 @@ def main():
         pass
 
     console                 = Console()
-    dev                     = PowerMOSFET(BSIM6Model(BSIM6Params()), PowerParams())
+    if args.clear:
+        clear_data(args.out, console)
+    dev                   = PowerMOSFET(BSIM6Model(BSIM6Params()), PowerParams())
 
     t0                      = time.perf_counter()
+    started                 = datetime.now()
+    stamp                   = started.strftime(STAMP_FMT)                              # same stamp on every file of this run
     with console.status("[bold cyan]Characterizing power MOSFET…"):
         data, gq            = characterize(dev, args.points)
         summary             = summarize(dev, gq)
         csv_dir             = args.out / "csv"
         html_dir            = args.out / "html"
-        csv_dir.mkdir(parents=True, exist_ok=True)
-        html_dir.mkdir(parents=True, exist_ok=True)
+        log_dir             = args.out / "log"
+        for d in (csv_dir, html_dir, log_dir):
+            d.mkdir(parents=True, exist_ok=True)
         outputs             = []
         for name, df in data.items():
-            df.to_csv(csv_dir / f"{name}.csv", index=False)
-            outputs.append(csv_dir / f"{name}.csv")
-        report              = Path(write_report(data, summary, str(html_dir / "power_mosfet_report.html")))
+            path            = csv_dir / f"{name}_{stamp}.csv"
+            df.to_csv(path, index=False)
+            outputs.append(path)
+        report              = Path(write_report(data, summary, str(html_dir / f"BSIM6_report_{stamp}.html")))
         outputs.append(report)
-        log_dir             = args.out / "log"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log                 = write_log(log_dir / "bsim.log", args, dev, summary, outputs,
-                                        time.perf_counter() - t0)
+        log                 = write_log(log_dir / f"bsim_{stamp}.log", args, dev, summary, outputs,
+                                        time.perf_counter() - t0, started)
+
+    def rel(p):
+        """Path relative to the project root (parent of the output dir) when possible, for a compact panel."""
+        try:
+            return str(Path(p).resolve().relative_to(args.out.resolve().parent))
+        except ValueError:
+            return str(p)
 
     console.print(summary_table(summary))
     console.print(Panel.fit(
-        Text.assemble(("CSV     ", "dim"), (str(csv_dir), "green"),
+        Text.assemble(("Run     ", "dim"), (stamp, "bold magenta"), ("\n", ""),
+                      ("CSV     ", "dim"), (rel(csv_dir), "green"),
                       (f"  ({len(data)} files, {time.perf_counter() - t0:.1f} s)\n", "dim"),
-                      ("Report  ", "dim"), (str(report), "bold blue underline"), ("\n", ""),
-                      ("Log     ", "dim"), (str(log), "bold yellow")),
+                      ("Report  ", "dim"), (rel(report), "bold blue underline"), ("\n", ""),
+                      ("Log     ", "dim"), (rel(log), "bold yellow")),
         border_style="green", title="[bold green]Done", title_align="left"))
 #?----------------------------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":

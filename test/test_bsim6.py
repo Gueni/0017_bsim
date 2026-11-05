@@ -23,14 +23,20 @@ import  math
 import  os
 import  sys
 import  time
+from    datetime                    import  datetime
 
 import  numpy                       as  np
 from    rich                        import  box
 from    rich.console                import  Console
 from    rich.panel                  import  Panel
+from    rich.rule                   import  Rule
 from    rich.table                  import  Table
+from    rich.text                   import  Text
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+ROOT                        = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+LOG_DIR                     = os.path.join(ROOT, "data", "log")
+STAMP_FMT                   = "%Y_%m_%d_%H_%M_%S"                                      # same suffix format as main.py
+sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from    bsim6                       import  BSIM6Model
 from    params                      import  BSIM6Params
@@ -144,13 +150,18 @@ def test_gate_charge_has_miller_plateau():
     assert info["Qgd"] > 0 and info["Qg"] > info["Qgs"] + info["Qgd"]
 #?----------------------------------------------------------------------------------------------------------------------------------------
 def run_all():
-    """Run every test_* function and show the results as a rich table. Returns the number of failures."""
+    """Run every test_* function, show the results as a rich table and save them to data/log/test_bsim6_<date-time>.log.
+
+    Returns the number of failures.
+    """
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")                     # Windows consoles (cp1252 can't print ✔)
     except AttributeError:
         pass
-    console                 = Console()
-    tests                  = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
+    started                 = datetime.now()
+    console                 = Console(record=True)                                     # record → saved to the log afterwards
+    console.print(Rule(f"BSIM6 / Power MOSFET tests — {started:%Y-%m-%d %H:%M:%S}"))
+    tests                   = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     table                   = Table(title="BSIM6 / Power MOSFET — Physics Tests", title_style="bold magenta",
                                     box=box.ROUNDED, header_style="bold white on blue", border_style="blue",
                                     row_styles=["", "on grey11"])
@@ -175,7 +186,8 @@ def run_all():
                 verdict, detail = "[bold yellow]⚠ ERROR", f"{type(e).__name__}: {e}"
             fails          += bool(detail)
             ms              = 1e3 * (time.perf_counter() - t0)
-            table.add_row(str(i), name.removeprefix("test_").replace("_", " "), verdict, f"{ms:,.0f} ms", detail)
+            table.add_row(str(i), name.removeprefix("test_").replace("_", " "), verdict, f"{ms:,.0f} ms",
+                          Text(detail))                                                # Text: brackets in messages stay literal
 
     console.print(table)
     passed                  = len(tests) - fails
@@ -185,6 +197,11 @@ def run_all():
                             + f"  [dim]in {time.perf_counter() - t_all:.2f} s",
                             border_style=style, title=f"[bold {style}]{'All good' if not fails else 'Failures'}",
                             title_align="left"))
+
+    os.makedirs(LOG_DIR, exist_ok=True)
+    log                     = os.path.normpath(os.path.join(LOG_DIR, f"test_bsim6_{started.strftime(STAMP_FMT)}.log"))
+    console.save_text(log, styles=False)
+    console.print(f"[dim]Log[/]  [bold yellow]{log}")
     return fails
 #?----------------------------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":

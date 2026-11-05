@@ -1,4 +1,4 @@
-─────────────────────────────────────────────── BSIM6 Power MOSFET run — 2026-11-05 23:12:36 ───────────────────────────────────────────────
+─────────────────────────────────────────────── BSIM6 Power MOSFET run — 2026-11-05 23:18:02 ───────────────────────────────────────────────
 Run                                               
 ╭──────────────────┬─────────────────────────────╮
 │ Setting          │ Value                       │
@@ -6,7 +6,7 @@ Run
 │ Python           │ 3.14.4                      │
 │ Points per sweep │ 60                          │
 │ Output directory │ D:\WORKSPACE\0017_bsim\data │
-│ Run time         │ 2.7 s                       │
+│ Run time         │ 4.2 s                       │
 ╰──────────────────┴─────────────────────────────╯
 
 BSIM6Params — model card                                                                                     
@@ -153,18 +153,18 @@ Derived device quantities (25 °C)
 │ VSD                │ IS=20 A (body diode)      │                 0.810 V │
 ╰────────────────────┴───────────────────────────┴─────────────────────────╯
 
-Output files                                                                       
-╭──────────────────────────┬───────────────────┬──────────────────────────────────╮
-│ File                     │          Contents │ Path                             │
-├──────────────────────────┼───────────────────┼──────────────────────────────────┤
-│ output.csv               │ 720 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ transfer.csv             │ 480 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ rdson.csv                │  72 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ vth.csv                  │  24 rows × 2 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ caps.csv                 │  70 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ gate_charge.csv          │ 161 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ diode.csv                │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ off.csv                  │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
-│ power_mosfet_report.html │            137 kB │ D:\WORKSPACE\0017_bsim\data\html │
-╰──────────────────────────┴───────────────────┴──────────────────────────────────╯
+Output files                                                                                    
+╭───────────────────────────────────────┬───────────────────┬──────────────────────────────────╮
+│ File                                  │          Contents │ Path                             │
+├───────────────────────────────────────┼───────────────────┼──────────────────────────────────┤
+│ output_2026-11-05_23-18-02.csv        │ 720 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ transfer_2026-11-05_23-18-02.csv      │ 480 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ rdson_2026-11-05_23-18-02.csv         │  72 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ vth_2026-11-05_23-18-02.csv           │  24 rows × 2 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ caps_2026-11-05_23-18-02.csv          │  70 rows × 4 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ gate_charge_2026-11-05_23-18-02.csv   │ 161 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ diode_2026-11-05_23-18-02.csv         │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ off_2026-11-05_23-18-02.csv           │ 180 rows × 3 cols │ D:\WORKSPACE\0017_bsim\data\csv  │
+│ BSIM6_report_2026-11-05_23-18-02.html │            137 kB │ D:\WORKSPACE\0017_bsim\data\html │
+╰───────────────────────────────────────┴───────────────────┴──────────────────────────────────╯
 
